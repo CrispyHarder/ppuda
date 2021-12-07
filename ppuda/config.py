@@ -154,6 +154,8 @@ def init_config(mode='eval'):
 
 
     args = parser.parse_args()
+    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
+    args['device'] = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     if is_train_ghn:
         args.lr_steps = list(map(int, args.lr_steps.split(',')))
