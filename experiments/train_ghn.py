@@ -25,6 +25,7 @@ from ppuda.deepnets1m.loader import DeepNets1M
 from ppuda.utils import capacity, Trainer
 from ppuda.deepnets1m.net import Network
 
+from datetime import datetime
 
 def main():
 
@@ -78,6 +79,11 @@ def main():
     for epoch in range(args.epochs):
 
         print('\nepoch={:03d}/{:03d}, lr={:e}'.format(epoch + 1, args.epochs, scheduler.get_last_lr()[0]))
+        
+        #print time to track the speed of training
+        now = datetime.now()
+        current_time = now.strftime("%H:%M:%S")
+        print(f'Before Iteration {epoch} time is {current_time}')
 
         trainer.reset()
         ghn.train()
