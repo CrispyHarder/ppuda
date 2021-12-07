@@ -64,6 +64,7 @@ def init_config(mode='eval'):
     parser.add_argument('-w', '--num_workers', type=int, default=8 if is_imagenet else (4 if is_detection else 0),
                         help='number of cpu processes to use')
     parser.add_argument('--device', type=str, default=default_device(), help='device: cpu or cuda')
+    parser.add_argument('--gpu_id', type=str, default=0)
     parser.add_argument('--debug', type=int, default=1, help='the level of details printed out, 0 is the minimal level.')
 
     is_train_ghn = mode == 'train_ghn'
