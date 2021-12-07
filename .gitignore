@@ -9,3 +9,4 @@ pip-wheel-metadata/
 __pycache__/
 *egg-info/
 *_private.py
+/data/*
