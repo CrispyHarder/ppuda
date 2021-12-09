@@ -32,8 +32,8 @@ def main():
     args = init_config(mode='train_ghn')
 
     #set device 
-    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
+    device = torch.device(f"cuda:{args.gpu_id}" if torch.cuda.is_available() else "cpu")
 
     train_queue, val_queue, num_classes = image_loader(args.dataset,
                                                        args.data_dir,
