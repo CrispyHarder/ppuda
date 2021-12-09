@@ -31,6 +31,10 @@ def main():
 
     args = init_config(mode='train_ghn')
 
+    #set device 
+    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
     train_queue, val_queue, num_classes = image_loader(args.dataset,
                                                        args.data_dir,
                                                        test=False,
@@ -55,7 +59,7 @@ def main():
               ve=args.virtual_edges > 1,
               layernorm=args.ln,
               hid=args.hid,
-              debug_level=args.debug).to(args.device)
+              debug_level=args.debug).to(device)
     if args.multigpu:
         ghn = ghn_parallel(ghn)
 
@@ -68,7 +72,7 @@ def main():
                       is_imagenet,
                       n_batches=len(train_queue),
                       grad_clip=args.grad_clip,
-                      device=ghn.device_ids if args.multigpu else args.device,
+                      device=ghn.device_ids if args.multigpu else device,
                       log_interval=args.log_interval)
 
 
@@ -91,7 +95,7 @@ def main():
 
         for step, (images, targets) in enumerate(train_queue):
 
-            upd, loss = False, torch.zeros(1, device=args.device)
+            upd, loss = False, torch.zeros(1, device=device)
             while not upd:
                 try:
                     graphs = next(graphs_queue)
@@ -106,7 +110,7 @@ def main():
                         nets_torch.append(net)
 
                     # Predict parameters
-                    nets_torch = ghn(nets_torch, graphs if args.multigpu else graphs.to_device(args.device))
+                    nets_torch = ghn(nets_torch, graphs if args.multigpu else graphs.to_device(device))
                     loss = trainer.update(nets_torch, images, targets)
                     trainer.log()
 
@@ -130,7 +134,7 @@ def main():
                                 ghn = ghn.module
                             ghn.to('cpu')
                             torch.cuda.empty_cache()
-                            ghn.to(args.device)
+                            ghn.to(device)
                             if args.multigpu:
                                 ghn = ghn_parallel(ghn)
 
