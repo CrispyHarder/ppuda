@@ -1,13 +1,11 @@
 import os
 import numpy as np
 import torch
-from torch._C import default_generator
-import torch.nn.functional as F
-from torch import nn
 import _dwp.utils as utils
 from _dwp.logger import Logger
 import _dwp.myexman as myexman
-from _dwp.my_utils import save_args_params
+from ppuda.ghn.nn import GHN
+from ppuda.utils.utils import default_device
 
 def train(trainloader, testloader, lvae, optimizer, args):
     logger = Logger(name='logs', base=args.root)
@@ -84,30 +82,19 @@ def train(trainloader, testloader, lvae, optimizer, args):
     torch.save(optimizer.state_dict(), os.path.join(args.root, 'opt_params_lastepoch.torch'))
 
 
-def adjust_learning_rate(optimizer, lr):
-    for param_group in optimizer.param_groups:
-        param_group['lr'] = lr
-
-
-def lr_linear(epoch):
-    '''sets the learning rate in a way that it is lr at epoch 0 and linearily 
-    decreases to 0 at args.num_epochs. After num_epochs the lr is constantly zero'''
-    lr = args.lr * np.minimum((-epoch) * 1. / (args.num_epochs) + 1, 1.)
-    return max(0, lr)
-
 
 if __name__ == '__main__':
     parser = myexman.ExParser(file=__file__)
     #train settings 
-    parser.add_argument('--data_dir', default='')
+    parser.add_argument('--data_dir', default='data')
     parser.add_argument('--num_epochs', default=300, type=int)
-    parser.add_argument('--batch_size', default=128, type=int)
+    parser.add_argument('--batch_size', default=64, type=int)
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--gpu_id', default='0')
 
     #optimisation
-    parser.add_argument('--weight_decay', type=float, default=0.)
-    parser.add_argument('--lr', default=1e-4, type=float)
+    parser.add_argument('--lr', default=1e-3, type=float)
+    #maybe add lr scheduler later 
     
     #evaluation
     parser.add_argument('--eval_freq', default=1, type=int)
@@ -115,18 +102,15 @@ if __name__ == '__main__':
     parser.add_argument('--verbose', default=1, type=int)
 
     #model specifics
-    parser.add_argument('--dims', default=[100,50,10], nargs='*', type=float)
-    parser.add_argument('--z_dim', default=2, type=int)
-    
+    parser.add_argument('--decoder', type=str, default='conv', choices=['mlp', 'conv', 'dwp'],
+                                help='decoder to predict final parameters')
+
     #misc
-    parser.add_argument('--add_save_path', default='')
+    #nothing yet 
 
     args = parser.parse_args()
 
-    #save the args to the dict, from where the vaes are initialised
-    save_args_params(args,args.add_save_path)
-
-    #et GPU, device and seeds
+    #get GPU, device and seeds
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
     args.cuda = torch.cuda.is_available()
     torch.manual_seed(args.seed)
@@ -134,7 +118,7 @@ if __name__ == '__main__':
     np.random.seed(args.seed)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    #get dataloaders
+    #get dataloaders for image data 
     if args.data_dir:
         trainloader, D = utils.get_dataloader(os.path.join(args.data_dir, 'train.npy'), args.batch_size, shuffle=True)
         testloader, D = utils.get_dataloader(os.path.join(args.data_dir, 'test.npy'), args.test_bs, shuffle=False)
@@ -142,10 +126,23 @@ if __name__ == '__main__':
         trainloader, D = utils.get_dataloader(args.train, args.batch_size, shuffle=True)
         testloader, D = utils.get_dataloader(args.test, args.test_bs, shuffle=False)
 
-    dims = [int(el) for el in args.dims]
-    lvae = LVAE(dims,args.z_dim,device)
+    #get the model 
+    ghn = GHN(max_shape=(64,64,3,3),
+              num_classes=10,
+              hypernet='gatedgnn',
+              decoder=args.decoder,
+              weight_norm=True,
+              ve=True,
+              layernorm=True,
+              hid=32,
+              debug_level=1).to(device)
+
+    #get the resnets with their graphs 
+    graphs = GraphBatch([Graph(nets_torch, ve_cutoff=50 if self.ve else 1)])
+                graphs.to_device(self.embed.weight.device)
+
     
     #configure optimisation
-    optimizer = torch.optim.Adam(lvae.parameters(), lr=args.lr, weight_decay=args.weight_decay) 
+    optimizer = torch.optim.Adam(ghn.parameters(), lr=args.lr) 
 
-    train(trainloader, testloader, lvae, optimizer, args)
+    train(trainloader, testloader, ghn, optimizer, args)
