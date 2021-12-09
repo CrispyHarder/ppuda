@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torch import nn
 import _dwp.utils as utils
 from _dwp.logger import Logger
-import _dwp.myexman
+import _dwp.myexman as myexman
 from _dwp.my_utils import save_args_params
 
 def train(trainloader, testloader, lvae, optimizer, args):
