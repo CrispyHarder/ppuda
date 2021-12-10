@@ -183,9 +183,7 @@ class GHN(nn.Module):
                     valid_ops, n_params_true))
 
         # Obtain initial embeddings for all nodes
-        print(self.embed(graphs.node_feat[:, 0]).shape) #TODO
         x = self.shape_enc(self.embed(graphs.node_feat[:, 0]), params_map, predict_class_layers=predict_class_layers)
-        print(x.shape) #TODO
 
         # Update node embeddings using a GatedGNN, MLP or another model
         x = self.gnn(x, graphs.edges, graphs.node_feat[:, 1])
