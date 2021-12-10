@@ -1,87 +1,19 @@
 import os
 import numpy as np
 import torch
+from torch.nn import functional as F
+import torch.nn as nn
+from torchvision.models.resnet import resnext50_32x4d
 import _dwp.utils as utils
 from _dwp.logger import Logger
 import _dwp.myexman as myexman
+from ppuda.utils.darts_utils import accuracy
 from ppuda.ghn.nn import GHN
+from ppuda.deepnets1m.graph import Graph, GraphBatch
+from models.resnet import resnet20,resnet32,resnet44
 from ppuda.utils.utils import default_device
-
-def train(trainloader, testloader, lvae, optimizer, args):
-    logger = Logger(name='logs', base=args.root)
-    best_loss = 11e8
-    for epoch in range(1, args.num_epochs + 1):
-
-        #set learning rate
-        adjust_learning_rate(optimizer, lr_linear(epoch-1))
-
-        train_KLD = utils.MovingMetric()
-        train_recon_loss = utils.MovingMetric()
-        train_loss = utils.MovingMetric()
-
-        for i, x in enumerate(trainloader):
-            optimizer.zero_grad()
-            x = x.to(lvae.device)
-            _ , recon_loss, kl_loss = lvae(x) 
-            
-            avg_KLD = kl_loss
-            loss = recon_loss + avg_KLD
-
-            loss.backward()
-            optimizer.step()
-
-            train_KLD.add(avg_KLD.item(), 1)
-            train_recon_loss.add(recon_loss.item(), 1)
-            train_loss.add(loss.item(),1)
-
-        test_KLD = utils.MovingMetric()
-        test_recon_loss = utils.MovingMetric()
-        test_loss = utils.MovingMetric()
-
-        for i, x in enumerate(testloader):
-            x = x.to(lvae.device)
-            _ , recon_loss, kl_loss = lvae(x)
-           
-            avg_KLD = kl_loss
-            loss = recon_loss + avg_KLD
-
-            test_KLD.add(avg_KLD.item(), 1)
-            test_recon_loss.add(recon_loss.item(), 1)
-            test_loss.add(loss.item(),1)
-        
-        train_KLD = train_KLD.get_val()
-        train_recon_loss = train_recon_loss.get_val()
-        train_loss = train_loss.get_val()
-        test_KLD = test_KLD.get_val()
-        test_recon_loss = test_recon_loss.get_val()
-        test_loss = test_loss.get_val()
-
-        logger.add_scalar(epoch, 'train_KLD', train_KLD)
-        logger.add_scalar(epoch, 'train_recon_loss', train_recon_loss)
-        logger.add_scalar(epoch, 'train_loss', train_loss)
-
-        logger.add_scalar(epoch, 'test_KLD', test_KLD)
-        logger.add_scalar(epoch, 'test_recon_loss', test_recon_loss)
-        logger.add_scalar(epoch, 'test_loss', test_loss)
-
-        logger.iter_info()
-        logger.save()
-
-        if (epoch-1) % 10 == 0:
-            torch.save(lvae.state_dict() , os.path.join(args.root, 'lvae_params_epoch_{}.torch'.format(epoch)))
-            torch.save(optimizer.state_dict(), os.path.join(args.root, 'opt_params_epoch_{}.torch'.format(epoch)))
-
-        is_best = (test_loss < best_loss)
-        if is_best:
-            best_loss = test_loss
-            torch.save(lvae.state_dict(), os.path.join(args.root, 'lvae_params.torch'))   
-            if args.add_save_path : 
-                torch.save(lvae.state_dict(), os.path.join(args.add_save_path, 'lvae_params.torch'))  
-
-    torch.save(lvae.state_dict(), os.path.join(args.root, 'lvae_params_lastepoch.torch'))
-    torch.save(optimizer.state_dict(), os.path.join(args.root, 'opt_params_lastepoch.torch'))
-
-
+import time
+from torch.optim.lr_scheduler import MultiStepLR
 
 if __name__ == '__main__':
     parser = myexman.ExParser(file=__file__)
@@ -94,6 +26,9 @@ if __name__ == '__main__':
 
     #optimisation
     parser.add_argument('--lr', default=1e-3, type=float)
+    parser.add_argument('--weight_decay', default=1e-5, type=float)
+    parser.add_argument('--lr_steps', type=str, default='200,250', help='epochs when to decrease lr')
+    parser.add_argument('--gamma', type=float, default=0.1, help='learning rate decay factor')
     #maybe add lr scheduler later 
     
     #evaluation
@@ -119,12 +54,8 @@ if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     #get dataloaders for image data 
-    if args.data_dir:
-        trainloader, D = utils.get_dataloader(os.path.join(args.data_dir, 'train.npy'), args.batch_size, shuffle=True)
-        testloader, D = utils.get_dataloader(os.path.join(args.data_dir, 'test.npy'), args.test_bs, shuffle=False)
-    else:
-        trainloader, D = utils.get_dataloader(args.train, args.batch_size, shuffle=True)
-        testloader, D = utils.get_dataloader(args.test, args.test_bs, shuffle=False)
+    trainloader, D = utils.get_dataloader(os.path.join(args.data_dir, 'train.npy'), args.batch_size, shuffle=True)
+    testloader, D = utils.get_dataloader(os.path.join(args.data_dir, 'test.npy'), args.test_bs, shuffle=False)
 
     #get the model 
     ghn = GHN(max_shape=(64,64,3,3),
@@ -137,12 +68,124 @@ if __name__ == '__main__':
               hid=32,
               debug_level=1).to(device)
 
-    #get the resnets with their graphs 
-    graphs = GraphBatch([Graph(nets_torch, ve_cutoff=50 if self.ve else 1)])
-                graphs.to_device(self.embed.weight.device)
+    #get the resnets with their graphs
+    res20, res32, res44 = resnet20().to(device), resnet32().to(device), resnet44().to(device)
+    models = [res20, res32, res44]
+
+    graphs = GraphBatch([Graph(model, ve_cutoff=50) for model in models])
+    graphs.to_device(device)
 
     
     #configure optimisation
-    optimizer = torch.optim.Adam(ghn.parameters(), lr=args.lr) 
+    optimizer = torch.optim.Adam(ghn.parameters(), lr=args.lr, weight_decay=args.weight_decay) 
+    scheduler = MultiStepLR(optimizer, milestones=args.lr_steps, gamma=args.gamma)
 
-    train(trainloader, testloader, ghn, optimizer, args)
+    #Training part 
+    logger = Logger(name='logs', base=args.root)
+    best_loss = 11e8
+    for epoch in range(1, args.num_epochs + 1):
+        
+        train_loss = utils.MovingMetric()
+        val_loss = utils.MovingMetric()
+        train_top1 = utils.MovingMetric()
+        val_top1 = utils.MovingMetric()
+        train_top5 = utils.MovingMetric()
+        val_top5 = utils.MovingMetric()
+        val_res_top1 = utils.MovingMetric()
+
+        start_epoch = time.time()
+
+        for _,(images,labels) in enumerate(trainloader):
+
+            logits = 0
+            loss = 0
+            count = 0
+
+            optimizer.zero_grad()
+
+            models_pred = ghn(models,graphs)
+
+            images = images.to(device)
+            labels = labels.to(device)
+
+            for i,model in enumerate(models): 
+                y = model(images)
+                loss += F.cross_entropy(y, labels)
+                logits += y 
+                count += 1 
+            
+            loss = loss/count 
+            logits = logits/count
+
+            loss.backward()
+
+            parameters = []
+            for group in optimizer.param_groups:
+                parameters.extend(group['params'])
+
+            nn.utils.clip_grad_norm_(parameters, 5)
+            optimizer.step()
+
+            prec1, prec5 = accuracy(logits, labels, topk=(1, 5))
+            n = len(labels)
+            train_loss.add(loss.item(),n)
+            train_top1.add(prec1.item(),n)
+            train_top5.add(prec5.item(),n)
+
+        #during eval time, ghn does not change
+        models_pred = ghn(models,graphs)
+        for _,(images,labels) in enumerate(testloader):
+
+            logits = 0
+            loss = 0
+            count = 0
+
+            images = images.to(device)
+            labels = labels.to(device)
+
+            for i,model in enumerate(models): 
+                y = model(images)
+                loss += F.cross_entropy(y, labels)
+                logits += y 
+                count += 1 
+                if i == 0:
+                    res20_logits = logits
+            
+            loss = loss/count 
+            logits = logits/count
+
+            prec1, prec5 = accuracy(logits, labels, topk=(1, 5))
+            res20_p1, _ = accuracy(res20_logits, labels, topk=(1, 5))
+
+            n = len(labels)
+            val_loss.add(loss.item(),n)
+            val_top1.add(prec1.item(),n)
+            val_top5.add(prec5.item(),n)
+            val_res_top1.add(res20_p1.item(),n)
+
+        logger.add_scalar(epoch, 'time', time.time()-start_epoch)
+        logger.add_scalar(epoch, 'train_loss', train_loss.get_val())
+        logger.add_scalar(epoch, 'train_top1', train_top1.get_val())
+        logger.add_scalar(epoch, 'val_top1', val_top1.get_val())
+        logger.add_scalar(epoch, 'val_res_top1', val_res_top1.get_val())
+        logger.add_scalar(epoch, 'val_loss', val_loss.get_val())
+        logger.add_scalar(epoch, 'train_top5', train_top5.get_val())
+        logger.add_scalar(epoch, 'val_top5', val_top5.get_val())
+        
+        logger.iter_info()
+        logger.save()
+
+        if (epoch-1) % 10 == 0:
+            torch.save(ghn.state_dict() , os.path.join(args.root, 'ghn_params_epoch_{}.torch'.format(epoch)))
+            torch.save(optimizer.state_dict(), os.path.join(args.root, 'opt_params_epoch_{}.torch'.format(epoch)))
+
+        is_best = (val_loss < best_loss)
+        if is_best:
+            best_loss = val_loss
+            torch.save(ghn.state_dict(), os.path.join(args.root, 'ghn_params.torch')) 
+
+        scheduler.step()
+
+    torch.save(ghn.state_dict(), os.path.join(args.root, 'ghn_params_lastepoch.torch'))
+    torch.save(optimizer.state_dict(), os.path.join(args.root, 'opt_params_lastepoch.torch'))
+
