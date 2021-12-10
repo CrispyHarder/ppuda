@@ -56,7 +56,7 @@ if __name__ == '__main__':
                                              num_examples=None, seed=args.data_split_seed)
 
     #get the model 
-    ghn = GHN(max_shape=(64,64,3,3),
+    ghn = GHN(max_shape=(64,64,11,11),
               num_classes=10,
               hypernet='gatedgnn',
               decoder=args.decoder,
