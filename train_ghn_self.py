@@ -67,9 +67,14 @@ if __name__ == '__main__':
               debug_level=1).to(device)
 
     #get the resnets with their graphs
-    res20, res32, res44 = resnet20(), resnet32(), resnet44()
-    models = [res20]
-
+    # res20, res32, res44 = resnet20(), resnet32(), resnet44()
+    # models = [res20]
+    import torchvision.models as t_models
+    from ppuda.utils import adjust_net
+    res18 = t_models.resnet18(num_classes=10)
+    res18 = adjust_net(res18)
+    models = [res18]
+    
     graphs = GraphBatch([Graph(model, ve_cutoff=50) for model in models])
     graphs.to_device(device)
     for model in models:

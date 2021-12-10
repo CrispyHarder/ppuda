@@ -15,6 +15,8 @@ import torch.nn as nn
 from .mlp import MLP
 from .layers import get_activation
 
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 class ConvDecoder(nn.Module):
     def __init__(self,
@@ -30,13 +32,11 @@ class ConvDecoder(nn.Module):
         self.fc = nn.Sequential(nn.Linear(in_features,
                                           hid[0] * np.prod(out_shape[2:])),
                                 nn.ReLU())
-
         conv = []
         for j, n_hid in enumerate(hid):
             n_out = np.prod(out_shape[:2]) if j == len(hid) - 1 else hid[j + 1]
             conv.extend([nn.Conv2d(n_hid, n_out, 1),
                          get_activation(None if j == len(hid) - 1 else 'relu')])
-
         self.conv = nn.Sequential(*conv)
         self.class_layer_predictor = nn.Sequential(
             nn.ReLU(),
@@ -46,14 +46,12 @@ class ConvDecoder(nn.Module):
     def forward(self, x, max_shape=(0,0), class_pred=False):
 
         N = x.shape[0]
-        x = self.fc(x).view(N, -1, *self.out_shape[2:])  # N,128,11,11
+        x = self.fc(x).view(N, -1, *self.out_shape[2:]) # N,128,11,11
         out_shape = self.out_shape
         if sum(max_shape) > 0:
             x = x[:, :, :max_shape[0], :max_shape[1]]
             out_shape = (out_shape[0], out_shape[1], max_shape[0], max_shape[1])
-
         x = self.conv(x).view(N, *out_shape)  # N, out, in, h, w
-
         if class_pred:
             x = self.class_layer_predictor(x[:, :, :, :, 0])  # N, num_classes, 64, 1
             x = x[:, :, :, 0]  # N, num_classes, 64
