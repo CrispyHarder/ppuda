@@ -24,6 +24,9 @@ from ..deepnets1m.graph import Graph, GraphBatch
 from ..utils import capacity, default_device
 import time
 
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
 
 def GHN1(dataset='imagenet'):
     """
@@ -90,6 +93,7 @@ class GHN(nn.Module):
         super(GHN, self).__init__()
 
         assert len(max_shape) == 4, max_shape
+        print(f'Max shape is {max_shape}')
         self.layernorm = layernorm
         self.weight_norm = weight_norm
         self.ve = ve
@@ -100,17 +104,19 @@ class GHN(nn.Module):
             self.ln = nn.LayerNorm(hid)
 
         self.embed = torch.nn.Embedding(len(PRIMITIVES_DEEPNETS1M), hid)
+        print(count_parameters(self.embed))
         self.shape_enc = ShapeEncoder(hid=hid,
                                       num_classes=num_classes,
                                       max_shape=max_shape,
                                       debug_level=debug_level)
+        print(count_parameters(self.shape_enc))
         if hypernet == 'gatedgnn':
             self.gnn = GatedGNN(in_features=hid, ve=ve)
         elif hypernet == 'mlp':
             self.gnn = MLP(in_features=hid, hid=(hid, hid))
         else:
             raise NotImplementedError(hypernet)
-
+        print(count_parameters(self.gnn))
         if decoder == 'conv':
             fn_dec, layers = ConvDecoder, (hid * 4, hid * 8)
         elif decoder == 'mlp':
@@ -121,13 +127,15 @@ class GHN(nn.Module):
                               hid=layers,
                               out_shape=max_shape,
                               num_classes=num_classes)
-
+        print(count_parameters(self.decoder))
         max_ch = max(max_shape[:2])
         self.decoder_1d = MLP(hid, hid=(hid * 2, 2 * max_ch),
                               last_activation=None)
         self.bias_class = nn.Sequential(nn.ReLU(),
                                         nn.Linear(max_ch, num_classes))
-
+        print(count_parameters(self.decoder_1d))
+        print(count_parameters(self.bias_class))
+        print('done')
 
     @staticmethod
     def load(checkpoint_path, debug_level=1, device=default_device(), verbose=False):
@@ -198,16 +206,22 @@ class GHN(nn.Module):
 
         # Predict max-sized parameters for a batch of nets using decoders
         w = {}
+        print(max_sz)
         for key, inds in param_groups.items():
             if len(inds) == 0:
                 continue
             x_ = x[torch.tensor(inds, device=x.device)]
+            print(key)
+            print(x_.shape)
             if key in ['4d', 'cls_w']:
                 w[key] = self.decoder(x_, max_sz, key=='cls_w')
+                print(w[key].shape)
             else:
                 w[key] = self.decoder_1d(x_).view(len(inds), 2, -1)
+                print(w[key].shape)
                 if key == 'cls_b':
                     w[key] = self.bias_class(w[key])
+                    print(w[key].shape)
 
         # Transfer predicted parameters (w) to the networks
         n_tensors, n_params = 0, 0
