@@ -25,7 +25,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
-import utils
+import _dwp.utils as utils
 import numpy as np 
 from torch.autograd import Variable
 import os 
