@@ -20,6 +20,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_epochs', default=300, type=int)
     parser.add_argument('--batch_size', default=64, type=int)
     parser.add_argument('--seed', default=42, type=int)
+    parser.add_argument('--data_split_seed', default=42, type=int)
     parser.add_argument('--gpu_id', default='0')
 
     #optimisation
@@ -52,8 +53,8 @@ if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     #get dataloaders for image data 
-    trainloader, D = utils.get_dataloader(os.path.join(args.data_dir, 'train.npy'), args.batch_size, shuffle=True)
-    testloader, D = utils.get_dataloader(os.path.join(args.data_dir, 'test.npy'), args.test_bs, shuffle=False)
+    trainloader, testloader = utils.load_dataset(data=args.data, train_bs=args.batch_size, test_bs=args.test_bs,
+                                             num_examples=None, seed=args.data_split_seed)
 
     #get the model 
     ghn = GHN(max_shape=(64,64,3,3),
