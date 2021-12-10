@@ -56,7 +56,7 @@ if __name__ == '__main__':
                                              num_examples=None, seed=args.data_split_seed)
 
     #get the model 
-    ghn = GHN(max_shape=(64,64,11,11),
+    ghn = GHN(max_shape=(64,64,3,3),
               num_classes=10,
               hypernet='gatedgnn',
               decoder=args.decoder,
@@ -68,7 +68,7 @@ if __name__ == '__main__':
 
     #get the resnets with their graphs
     res20, res32, res44 = resnet20(), resnet32(), resnet44()
-    models = [res20]
+    models = [res32]
 
     graphs = GraphBatch([Graph(model, ve_cutoff=50) for model in models])
     graphs.to_device(device)
