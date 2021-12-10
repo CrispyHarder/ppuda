@@ -102,18 +102,15 @@ class ShapeEncoder(nn.Module):
 
             recognized_sz = 0
             for i in range(4):
-                print(f'i is {i}')
                 # if not in the dictionary, then use the maximum shape
                 if i < 2:  # for out/in channel dimensions
                     shape_ind[node_ind, i] = self.channels_lookup[sz[i] if sz[i] in self.channels_lookup else self.channels[-1]]
                     if self.debug_level and not self.printed_warning:
                         recognized_sz += int(sz[i] in self.channels_lookup_training)
-                        print(int(sz[i] in self.channels_lookup_training))
                 else:  # for kernel height/width
                     shape_ind[node_ind, i] = self.spatial_lookup[sz[i] if sz[i] in self.spatial_lookup else self.spatial[-1]]
                     if self.debug_level and not self.printed_warning:
                         recognized_sz += int(sz[i] in self.spatial_lookup_training)
-                        print(int(sz[i] in self.spatial_lookup_training))
 
             if self.debug_level and not self.printed_warning:  # print a warning once per architecture
                 if recognized_sz != 4:
