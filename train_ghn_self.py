@@ -3,7 +3,6 @@ import numpy as np
 import torch
 from torch.nn import functional as F
 import torch.nn as nn
-from torchvision.models.resnet import resnext50_32x4d
 import _dwp.utils as utils
 from _dwp.logger import Logger
 import _dwp.myexman as myexman
@@ -11,7 +10,6 @@ from ppuda.utils.darts_utils import accuracy
 from ppuda.ghn.nn import GHN
 from ppuda.deepnets1m.graph import Graph, GraphBatch
 from models.resnet import resnet20,resnet32,resnet44
-from ppuda.utils.utils import default_device
 import time
 from torch.optim.lr_scheduler import MultiStepLR
 
