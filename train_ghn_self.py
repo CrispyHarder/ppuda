@@ -183,7 +183,7 @@ if __name__ == '__main__':
 
         is_best = (val_loss.get_val() < best_loss)
         if is_best:
-            best_loss = val_loss
+            best_loss = val_loss.get_val()
             torch.save(ghn.state_dict(), os.path.join(args.root, 'ghn_params.torch')) 
 
         scheduler.step()
