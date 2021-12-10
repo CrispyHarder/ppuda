@@ -114,9 +114,9 @@ class ShapeEncoder(nn.Module):
 
             if self.debug_level and not self.printed_warning:  # print a warning once per architecture
                 if recognized_sz != 4:
-                    print( 'WARNING: unrecognized shape %s, so the closest shape at index %s will be used instead.' % (
-                        sz_org, ([self.channels[c.item()] if i < 2 else self.spatial[c.item()] for i, c in
-                                  enumerate(shape_ind[node_ind])])))
+                    # print( 'WARNING: unrecognized shape %s, so the closest shape at index %s will be used instead.' % (
+                    #     sz_org, ([self.channels[c.item()] if i < 2 else self.spatial[c.item()] for i, c in
+                    #               enumerate(shape_ind[node_ind])])))
                     self.printed_warning = True
 
         shape_embed = torch.cat(
