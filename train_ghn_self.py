@@ -109,8 +109,7 @@ if __name__ == '__main__':
             images = images.to(device)
             labels = labels.to(device)
 
-            for i,model in enumerate(models): 
-                print(i)#TODO
+            for i,model in enumerate(models):
                 y = model(images)
                 loss += F.cross_entropy(y, labels)
                 logits += y 
