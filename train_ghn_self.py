@@ -16,7 +16,6 @@ from torch.optim.lr_scheduler import MultiStepLR
 if __name__ == '__main__':
     parser = myexman.ExParser(file=__file__)
     #train settings 
-    parser.add_argument('--data_dir', default='data')
     parser.add_argument('--num_epochs', default=300, type=int)
     parser.add_argument('--batch_size', default=64, type=int)
     parser.add_argument('--seed', default=42, type=int)
@@ -53,7 +52,7 @@ if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     #get dataloaders for image data 
-    trainloader, testloader = utils.load_dataset(data=args.data, train_bs=args.batch_size, test_bs=args.test_bs,
+    trainloader, testloader = utils.load_dataset(data='cifar', train_bs=args.batch_size, test_bs=args.test_bs,
                                              num_examples=None, seed=args.data_split_seed)
 
     #get the model 
