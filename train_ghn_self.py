@@ -181,7 +181,7 @@ if __name__ == '__main__':
             torch.save(ghn.state_dict() , os.path.join(args.root, 'ghn_params_epoch_{}.torch'.format(epoch)))
             torch.save(optimizer.state_dict(), os.path.join(args.root, 'opt_params_epoch_{}.torch'.format(epoch)))
 
-        is_best = (val_loss < best_loss)
+        is_best = (val_loss.item() < best_loss)
         if is_best:
             best_loss = val_loss
             torch.save(ghn.state_dict(), os.path.join(args.root, 'ghn_params.torch')) 
