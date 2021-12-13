@@ -68,6 +68,7 @@ if __name__ == '__main__':
     else:
         raise NotImplementedError(f'no {args.decoder} decoder')
     ghn = ghn.to(device)
+    ghn.train()
 
     #get the resnets with their graphs
     res20, res32, res44 = resnet20(), resnet32(), resnet44()
@@ -112,7 +113,7 @@ if __name__ == '__main__':
             images = images.to(device)
             labels = labels.to(device)
 
-            for i,model in enumerate(models):
+            for i,model in enumerate(models_pred):
                 y = model(images)
                 loss += F.cross_entropy(y, labels)
                 logits += y 
@@ -147,7 +148,7 @@ if __name__ == '__main__':
             images = images.to(device)
             labels = labels.to(device)
 
-            for i,model in enumerate(models): 
+            for i,model in enumerate(models_pred): 
                 y = model(images)
                 loss += F.cross_entropy(y, labels)
                 logits += y 
