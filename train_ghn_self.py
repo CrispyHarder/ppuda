@@ -59,14 +59,14 @@ if __name__ == '__main__':
     #load/init the model 
     from ppuda.ghn.nn import GHN2
     ghn = GHN2('cifar10')
-    if args.decoder == 'conv':
-        hid = ghn.hid
-        ghn.decoder = ConvDecoder(in_features=hid,
-                              hid=(hid * 4, hid * 8),
-                              out_shape=(64,64,3,3),
-                              num_classes=10)
-    else:
-        raise NotImplementedError(f'no {args.decoder} decoder')
+    # if args.decoder == 'conv':
+    #     hid = ghn.hid
+    #     ghn.decoder = ConvDecoder(in_features=hid,
+    #                           hid=(hid * 4, hid * 8),
+    #                           out_shape=(64,64,3,3),
+    #                           num_classes=10)
+    # else:
+    #     raise NotImplementedError(f'no {args.decoder} decoder')
     ghn = ghn.to(device)
     ghn.train()
 
@@ -100,6 +100,8 @@ if __name__ == '__main__':
         start_epoch = time.time()
 
         for i,(images,labels) in enumerate(trainloader):
+            if i > 10:
+                break
             logits = 0
             loss = 0
             count = 0
