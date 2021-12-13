@@ -270,6 +270,21 @@ class MovingMetric(object):
     def get_val(self):
         return self.val / max(self.n, 1)
 
+class AvgrageMeter:
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.avg = 0
+        self.sum = 0
+        self.cnt = 0
+
+    def update(self, val, n=1):
+        self.sum += val * n
+        self.cnt += n
+        self.avg = np.sum(self.sum) / self.cnt
+
 
 def mc_ensemble(net, dataloader, n_tries=10, log=False):
     gt = []
