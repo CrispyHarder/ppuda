@@ -94,13 +94,13 @@ if __name__ == '__main__':
     best_loss = 11e8
     for epoch in range(1, args.num_epochs + 1):
         
-        train_loss = utils.MovingMetric()
-        val_loss = utils.MovingMetric()
-        train_top1 = utils.MovingMetric()
-        val_top1 = utils.MovingMetric()
-        train_top5 = utils.MovingMetric()
-        val_top5 = utils.MovingMetric()
-        val_res_top1 = utils.MovingMetric()
+        train_loss = utils.AvgrageMeter()
+        val_loss = utils.AvgrageMeter()
+        train_top1 = utils.AvgrageMeter()
+        val_top1 = utils.AvgrageMeter()
+        train_top5 = utils.AvgrageMeter()
+        val_top5 = utils.AvgrageMeter()
+        val_res_top1 = utils.AvgrageMeter()
 
         start_epoch = time.time()
 
@@ -136,9 +136,9 @@ if __name__ == '__main__':
 
             prec1, prec5 = accuracy(logits, labels, topk=(1, 5))
             n = len(labels)
-            train_loss.add(loss.item(),n)
-            train_top1.add(prec1.item(),n)
-            train_top5.add(prec5.item(),n)
+            train_loss.update(loss.item(),n)
+            train_top1.update(prec1.item(),n)
+            train_top5.update(prec5.item(),n)
 
         #during eval time, ghn does not change
         models_pred = ghn(models,graphs)
@@ -169,19 +169,19 @@ if __name__ == '__main__':
             res20_p1, _ = accuracy(res20_logits, labels, topk=(1, 5))
 
             n = len(labels)
-            val_loss.add(loss.item(),n)
-            val_top1.add(prec1.item(),n)
-            val_top5.add(prec5.item(),n)
-            val_res_top1.add(res20_p1.item(),n)
+            val_loss.update(loss.item(),n)
+            val_top1.update(prec1.item(),n)
+            val_top5.update(prec5.item(),n)
+            val_res_top1.update(res20_p1.item(),n)
 
         logger.add_scalar(epoch, 'time', time.time()-start_epoch)
-        logger.add_scalar(epoch, 'train_loss', train_loss.get_val())
-        logger.add_scalar(epoch, 'train_top1', train_top1.get_val())
-        logger.add_scalar(epoch, 'val_top1', val_top1.get_val())
-        logger.add_scalar(epoch, 'val_res_top1', val_res_top1.get_val())
-        logger.add_scalar(epoch, 'val_loss', val_loss.get_val())
-        logger.add_scalar(epoch, 'train_top5', train_top5.get_val())
-        logger.add_scalar(epoch, 'val_top5', val_top5.get_val())
+        logger.add_scalar(epoch, 'train_loss', train_loss.avg)
+        logger.add_scalar(epoch, 'train_top1', train_top1.avg)
+        logger.add_scalar(epoch, 'val_top1', val_top1.avg)
+        logger.add_scalar(epoch, 'val_res_top1', val_res_top1.avg)
+        logger.add_scalar(epoch, 'val_loss', val_loss.avg)
+        logger.add_scalar(epoch, 'train_top5', train_top5.avg)
+        logger.add_scalar(epoch, 'val_top5', val_top5.avg)
         
         logger.iter_info()
         logger.save()
@@ -190,9 +190,9 @@ if __name__ == '__main__':
             torch.save(ghn.state_dict() , os.path.join(args.root, 'ghn_params_epoch_{}.torch'.format(epoch)))
             torch.save(optimizer.state_dict(), os.path.join(args.root, 'opt_params_epoch_{}.torch'.format(epoch)))
 
-        is_best = (val_loss.get_val() < best_loss)
+        is_best = (val_loss.avg < best_loss)
         if is_best:
-            best_loss = val_loss.get_val()
+            best_loss = val_loss.avg
             torch.save(ghn.state_dict(), os.path.join(args.root, 'ghn_params.torch')) 
 
         scheduler.step()
