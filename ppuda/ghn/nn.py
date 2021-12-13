@@ -95,6 +95,7 @@ class GHN(nn.Module):
         self.ve = ve
         self.debug_level = debug_level
         self.num_classes = num_classes
+        self.hid = hid
 
         if layernorm:
             self.ln = nn.LayerNorm(hid)
@@ -134,7 +135,6 @@ class GHN(nn.Module):
         if verbose:
             print('GHN with {} parameters loaded from epoch {}.'.format(capacity(ghn)[1], state_dict['epoch']))
         return ghn
-
 
     def forward(self, nets_torch, graphs=None, return_embeddings=False, predict_class_layers=True, bn_train=True):
         r"""

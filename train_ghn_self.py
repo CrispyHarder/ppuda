@@ -9,6 +9,7 @@ import _dwp.myexman as myexman
 from ppuda.utils.darts_utils import accuracy
 from ppuda.ghn.nn import GHN
 from ppuda.deepnets1m.graph import Graph, GraphBatch
+from ppuda.ghn.decoder import MLPDecoder, ConvDecoder
 from models.resnet import resnet20,resnet32,resnet44
 import time
 from torch.optim.lr_scheduler import MultiStepLR
@@ -55,25 +56,22 @@ if __name__ == '__main__':
     trainloader, testloader = utils.load_dataset(data='cifar', train_bs=args.batch_size, test_bs=args.test_bs,
                                              num_examples=None, seed=args.data_split_seed)
 
-    #get the model 
-    ghn = GHN(max_shape=(64,64,3,3),
-              num_classes=10,
-              hypernet='gatedgnn',
-              decoder=args.decoder,
-              weight_norm=True,
-              ve=True,
-              layernorm=True,
-              hid=32,
-              debug_level=1).to(device)
+    #load/init the model 
+    from ppuda.ghn.nn import GHN2
+    ghn = GHN2('cifar10')
+    if args.decoder == 'conv':
+        hid = ghn.hid
+        ghn.decoder = ConvDecoder(in_features=hid,
+                              hid=(hid * 4, hid * 8),
+                              out_shape=(64,64,3,3),
+                              num_classes=10)
+    else:
+        raise NotImplementedError(f'no {args.decoder} decoder')
+    ghn = ghn.to(device)
 
     #get the resnets with their graphs
-    # res20, res32, res44 = resnet20(), resnet32(), resnet44()
-    # models = [res20]
-    import torchvision.models as t_models
-    from ppuda.utils import adjust_net
-    res18 = t_models.resnet18(num_classes=10)
-    res18 = adjust_net(res18)
-    models = [res18]
+    res20, res32, res44 = resnet20(), resnet32(), resnet44()
+    models = [res20, res32, res44]
     
     graphs = GraphBatch([Graph(model, ve_cutoff=50) for model in models])
     graphs.to_device(device)
@@ -101,8 +99,6 @@ if __name__ == '__main__':
         start_epoch = time.time()
 
         for i,(images,labels) in enumerate(trainloader):
-            if i > 10:
-                break
             logits = 0
             loss = 0
             count = 0
