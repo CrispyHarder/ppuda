@@ -50,10 +50,8 @@ class ShapeEncoder(nn.Module):
                                   list(range(self.ch_steps[0], self.ch_steps[1], 2**3)) +
                                   list(range(self.ch_steps[1], self.ch_steps[2], 2**4)) +
                                   list(range(self.ch_steps[2], self.ch_steps[3] + 1, 2**5)))
-        print(self.channels) #TODO
 
         self.spatial = np.unique(list(range(1, max(12, max_shape[3]), 2)) + [14, 16])
-        print(self.spatial) #TODO
 
         # create a look up dictionary for faster determining the channel shape index
         # include shapes not seen during training by assigning them the the closest seen values
@@ -111,14 +109,12 @@ class ShapeEncoder(nn.Module):
                     shape_ind[node_ind, i] = self.spatial_lookup[sz[i] if sz[i] in self.spatial_lookup else self.spatial[-1]]
                     if self.debug_level and not self.printed_warning:
                         recognized_sz += int(sz[i] in self.spatial_lookup_training)
-
             if self.debug_level and not self.printed_warning:  # print a warning once per architecture
                 if recognized_sz != 4:
                     # print( 'WARNING: unrecognized shape %s, so the closest shape at index %s will be used instead.' % (
                     #     sz_org, ([self.channels[c.item()] if i < 2 else self.spatial[c.item()] for i, c in
                     #               enumerate(shape_ind[node_ind])])))
                     self.printed_warning = True
-
         shape_embed = torch.cat(
             (self.embed_channel(shape_ind[:, 0]),
              self.embed_channel(shape_ind[:, 1]),
