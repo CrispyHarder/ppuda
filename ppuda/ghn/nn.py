@@ -293,13 +293,10 @@ class GHN(nn.Module):
 
         for b, (node_info, net) in enumerate(zip(graphs.node_info, nets_torch)):
             target_modules = named_layered_modules(net)
-
             param_ind = torch.sum(graphs.n_nodes[:b]).item()
-
             for cell_id in range(len(node_info)):
                 matched_names = []
                 for (node_ind, param_name, name, sz, last_weight, last_bias) in node_info[cell_id]:
-
                     matched = []
                     for m in target_modules[cell_id]:
                         if m['param_name'].startswith(param_name):
