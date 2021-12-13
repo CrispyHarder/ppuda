@@ -77,8 +77,8 @@ if __name__ == '__main__':
     graphs = GraphBatch([Graph(model, ve_cutoff=50) for model in models])
     res20_graph = GraphBatch([Graph(res20, ve_cutoff=50)])
 
-    # graphs = graphs.to(device)
-    # res20_graph = res20_graph.to(device)
+    graphs.to_device(device)
+    res20_graph.to_device(device)
 
     for model in models:
         model = model.to(device)
