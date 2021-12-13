@@ -105,6 +105,8 @@ if __name__ == '__main__':
         start_epoch = time.time()
 
         for i,(images,labels) in enumerate(trainloader):
+            if i>10:
+                break
             logits = 0
             loss = 0
             count = 0
@@ -142,7 +144,7 @@ if __name__ == '__main__':
 
         #during eval time, ghn does not change
         models_pred = ghn(models,graphs)
-        res20 = ghn([res20],res20_graph)
+        res20 = ghn([res20],res20_graph)[0]
         for _,(images,labels) in enumerate(testloader):
             
             res20_logits = 0
