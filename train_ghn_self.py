@@ -100,8 +100,6 @@ if __name__ == '__main__':
         start_epoch = time.time()
 
         for i,(images,labels) in enumerate(trainloader):
-            if i > 10: 
-                break
             logits = 0
             loss = 0
             count = 0
