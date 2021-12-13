@@ -10,7 +10,7 @@ from ppuda.utils.darts_utils import accuracy
 from ppuda.ghn.nn import GHN
 from ppuda.deepnets1m.graph import Graph, GraphBatch
 from ppuda.ghn.decoder import MLPDecoder, ConvDecoder
-from models.resnet import resnet20,resnet32,resnet44
+from models.resnet import resnet20,resnet32,resnet44, resnet56
 import time
 from torch.optim.lr_scheduler import MultiStepLR
 
@@ -71,13 +71,18 @@ if __name__ == '__main__':
     ghn.train()
 
     #get the resnets with their graphs
-    res20, res32, res44 = resnet20(), resnet32(), resnet44()
-    models = [res20, res32, res44]
+    res20, res32, res44, res56 = resnet20(), resnet32(), resnet44(), resnet56()
+    models = [res32, res44, res56]
     
     graphs = GraphBatch([Graph(model, ve_cutoff=50) for model in models])
-    graphs.to_device(device)
+    res20_graph = GraphBatch([Graph(res20, ve_cutoff=50)])
+
+    graphs = graphs.to(device)
+    res20_graph = res20_graph.to(device)
+
     for model in models:
         model = model.to(device)
+    res20 = res20.to(device)
 
     
     #configure optimisation
@@ -139,8 +144,10 @@ if __name__ == '__main__':
 
         #during eval time, ghn does not change
         models_pred = ghn(models,graphs)
+        res20 = ghn([res20],res20_graph)
         for _,(images,labels) in enumerate(testloader):
-
+            
+            res20_logits = 0
             logits = 0
             loss = 0
             count = 0
@@ -153,8 +160,9 @@ if __name__ == '__main__':
                 loss += F.cross_entropy(y, labels)
                 logits += y 
                 count += 1 
-                if i == 0:
-                    res20_logits = logits
+            
+            res20_logits += res20(images)
+
             
             loss = loss/count 
             logits = logits/count
