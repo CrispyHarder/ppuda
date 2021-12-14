@@ -81,7 +81,7 @@ class Conv3Decoder(nn.Module):
             nn.Conv2d(out_shape[0], num_classes, 1))
 
 
-    def forward(self, x, class_pred=False):
+    def forward(self, x, max_shape=None, class_pred=False):
 
         N = x.shape[0]
         x = self.fc(x).view(N * np.prod(self.out_shape[:2]), self.latent_dim, 1, 1) # N*64^2,lat_dim, 1, 1
