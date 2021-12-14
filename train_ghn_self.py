@@ -32,7 +32,7 @@ if __name__ == '__main__':
     parser.add_argument('--verbose', default=1, type=int)
 
     #model specifics
-    parser.add_argument('--decoder', type=str, default='conv', choices=['mlp', 'conv', 'dwp'],
+    parser.add_argument('--decoder', type=str, default='conv', choices=['mlp', 'conv', 'dwp', 'conv3'],
                                 help='decoder to predict final parameters')
 
     #misc
@@ -51,7 +51,7 @@ if __name__ == '__main__':
     #now import packages who might need to have device set before hand 
     from ppuda.ghn.nn import GHN
     from ppuda.deepnets1m.graph import Graph, GraphBatch
-    from ppuda.ghn.decoder import MLPDecoder, ConvDecoder
+    from ppuda.ghn.decoder import Conv3Decoder, ConvDecoder
 
     #get dataloaders for image data 
     trainloader, testloader = utils.load_dataset(data='cifar', train_bs=args.batch_size, test_bs=args.test_bs,
@@ -66,6 +66,8 @@ if __name__ == '__main__':
                               hid=(hid * 4, hid * 8),
                               out_shape=(64,64,3,3),
                               num_classes=10)
+    elif args.decoder == 'conv3':
+        ghn.decoder = Conv3Decoder()
     else:
         raise NotImplementedError(f'no {args.decoder} decoder')
     ghn = ghn.to(device)
