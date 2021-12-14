@@ -11,9 +11,11 @@ Decoders to predict 1D-4D parameter tensors given node embeddings.
 
 
 import numpy as np
+import torch
 import torch.nn as nn
 from .mlp import MLP
 from .layers import get_activation
+from _dwp.classes import Decoder3x3
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -58,7 +60,37 @@ class ConvDecoder(nn.Module):
 
         return x
 
+class Conv3Decoder(nn.Module):
+    def __init__(self,
+                 in_features=32,
+                 latent_dim = 2,
+                 hidden_dim = 16,
+                 out_shape=None,
+                 num_classes=None):
+        super(Conv3Decoder, self).__init__()
 
+        self.latent_dim = latent_dim
+        self.hidden_dim = hidden_dim
+        self.out_shape = out_shape
+        self.num_classes = num_classes
+        self.fc = nn.Sequential(nn.Linear(in_features,self.latent_dim*np.prod(out_shape[:2])), # two-dim output for 64^2 slices
+                                nn.ELU())
+        self.conv = Decoder3x3(self.latent_dim,self.hidden_dim)
+        self.class_layer_predictor = nn.Sequential(
+            nn.ReLU(),
+            nn.Conv2d(out_shape[0], num_classes, 1))
+
+
+    def forward(self, x, class_pred=False):
+
+        N = x.shape[0]
+        x = self.fc(x).view(N * np.prod(self.out_shape[:2]), self.latent_dim, 1, 1) # N*64^2,lat_dim, 1, 1
+        out_shape = self.out_shape
+        x = torch.squeeze(self.conv(x)).view(N,*out_shape)  # N*64^2,1,3,3 -> squeeze (N,64^2,3,3) -> view (N,64,64,3,3)
+        if class_pred:
+            x = self.class_layer_predictor(x[:, :, :, :, 0])  # N, num_classes, 64, 1
+            x = x[:, :, :, 0]  # N, num_classes, 64
+        return x
 
 class MLPDecoder(nn.Module):
     def __init__(self,
