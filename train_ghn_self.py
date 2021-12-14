@@ -7,9 +7,6 @@ import _dwp.utils as utils
 from _dwp.logger import Logger
 import _dwp.myexman as myexman
 from ppuda.utils.darts_utils import accuracy
-from ppuda.ghn.nn import GHN
-from ppuda.deepnets1m.graph import Graph, GraphBatch
-from ppuda.ghn.decoder import MLPDecoder, ConvDecoder
 from models.resnet import resnet20,resnet32,resnet44, resnet56
 import time
 from torch.optim.lr_scheduler import MultiStepLR
@@ -31,7 +28,6 @@ if __name__ == '__main__':
     #maybe add lr scheduler later 
     
     #evaluation
-    parser.add_argument('--eval_freq', default=1, type=int)
     parser.add_argument('--test_bs', default=512, type=int)
     parser.add_argument('--verbose', default=1, type=int)
 
@@ -51,6 +47,11 @@ if __name__ == '__main__':
     torch.cuda.manual_seed(args.seed)
     np.random.seed(args.seed)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+    #now import packages who might need to have device set before hand 
+    from ppuda.ghn.nn import GHN
+    from ppuda.deepnets1m.graph import Graph, GraphBatch
+    from ppuda.ghn.decoder import MLPDecoder, ConvDecoder
 
     #get dataloaders for image data 
     trainloader, testloader = utils.load_dataset(data='cifar', train_bs=args.batch_size, test_bs=args.test_bs,
