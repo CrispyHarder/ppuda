@@ -67,7 +67,7 @@ if __name__ == '__main__':
                               out_shape=(64,64,3,3),
                               num_classes=10)
     elif args.decoder == 'conv3':
-        ghn.decoder = Conv3Decoder()
+        ghn.decoder = Conv3Decoder(out_shape=(64,64,3,3),num_classes=10)
     else:
         raise NotImplementedError(f'no {args.decoder} decoder')
     ghn = ghn.to(device)
@@ -108,6 +108,8 @@ if __name__ == '__main__':
         start_epoch = time.time()
 
         for i,(images,labels) in enumerate(trainloader):
+            if i > 10: 
+                break
             logits = 0
             loss = 0
             count = 0
