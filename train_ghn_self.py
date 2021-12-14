@@ -19,13 +19,13 @@ if __name__ == '__main__':
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--data_split_seed', default=42, type=int)
     parser.add_argument('--gpu_id', default='0')
+    parser.add_argument('--ghn_from_start', action='store_true', default=False)
 
     #optimisation
     parser.add_argument('--lr', default=1e-3, type=float)
     parser.add_argument('--weight_decay', default=1e-5, type=float)
     parser.add_argument('--lr_steps', type=str, default='200,250', help='epochs when to decrease lr')
     parser.add_argument('--gamma', type=float, default=0.1, help='learning rate decay factor')
-    #maybe add lr scheduler later 
     
     #evaluation
     parser.add_argument('--test_bs', default=512, type=int)
@@ -58,20 +58,34 @@ if __name__ == '__main__':
                                              num_examples=None, seed=args.data_split_seed)
 
     #load/init the model 
-    from ppuda.ghn.nn import GHN2
-    ghn = GHN2('cifar10')
+    if not args.ghn_from_start:
+        from ppuda.ghn.nn import GHN2
+        ghn = GHN2('cifar10')
+    else:
+        from ppuda.ghn.nn import GHN 
+        ghn = GHN(max_shape=(64,64,3,3),
+                    num_classes=19,
+                    hypernet='gatedgnn',
+                    decoder=args.decoder,
+                    weight_norm=True,
+                    ve=True,
+                    layernorm=True,
+                    hid=32,
+                    debug_level=1).to(device)
+    
     if args.decoder == 'conv':
         hid = ghn.hid
         ghn.decoder = ConvDecoder(in_features=hid,
-                              hid=(hid * 4, hid * 8),
-                              out_shape=(64,64,3,3),
-                              num_classes=10)
+                            hid=(hid * 4, hid * 8),
+                            out_shape=(64,64,3,3),
+                            num_classes=10)
     elif args.decoder == 'conv3':
         ghn.decoder = Conv3Decoder(out_shape=(64,64,3,3),num_classes=10)
     else:
         raise NotImplementedError(f'no {args.decoder} decoder')
     ghn = ghn.to(device)
     ghn.train()
+    
 
     #get the resnets with their graphs
     res20, res32, res44, res56 = resnet20(), resnet32(), resnet44(), resnet56()
