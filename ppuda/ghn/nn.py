@@ -36,7 +36,7 @@ def GHN1(dataset='imagenet'):
     return GHN.load(os.path.join(path, '../../checkpoints/ghn1_%s.pt' % dataset))
 
 
-def GHN2(dataset='imagenet'):
+def GHN2(dataset='imagenet', device=default_device()):
     """
     Loads GHN-2 trained on ImageNet or CIFAR-10.
     To load a GHN from an arbitrary checkpoint, use GHN.load(checkpoint_path).
@@ -44,7 +44,7 @@ def GHN2(dataset='imagenet'):
     :return: GHN-2 with trained weights
     """
     path = os.path.dirname(os.path.abspath(__file__))
-    return GHN.load(os.path.join(path, '../../checkpoints/ghn2_%s.pt' % dataset))
+    return GHN.load(os.path.join(path, '../../checkpoints/ghn2_%s.pt' % dataset),device=device)
 
 
 def ghn_parallel(ghn):
