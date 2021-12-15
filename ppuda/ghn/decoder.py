@@ -86,7 +86,7 @@ class Conv3Decoder(nn.Module):
         N = x.shape[0]
         x = self.fc(x).view(N * np.prod(self.out_shape[:2]), self.latent_dim, 1, 1) # N*64^2,lat_dim, 1, 1
         out_shape = self.out_shape
-        x = torch.squeeze(self.conv(x)).view(N,*out_shape)  # N*64^2,1,3,3 -> squeeze (N,64^2,3,3) -> view (N,64,64,3,3)
+        x = self.conv(x).view(N,*out_shape)  # N*64^2,1,3,3 -> view (N,64,64,3,3)
         if class_pred:
             x = self.class_layer_predictor(x[:, :, :, :, 0])  # N, num_classes, 64, 3
             x = x[:, :, :, 0]  # N, num_classes, 64
