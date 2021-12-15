@@ -64,9 +64,9 @@ if __name__ == '__main__':
     else:
         from ppuda.ghn.nn import GHN 
         ghn = GHN(max_shape=(64,64,3,3),
-                    num_classes=19,
+                    num_classes=10,
                     hypernet='gatedgnn',
-                    decoder=args.decoder,
+                    decoder='conv',
                     weight_norm=True,
                     ve=True,
                     layernorm=True,
