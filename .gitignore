@@ -11,3 +11,4 @@ __pycache__/
 *_private.py
 /data/*
 /logs/*
+/checkpoints/*
