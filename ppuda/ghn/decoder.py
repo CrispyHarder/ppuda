@@ -25,12 +25,20 @@ class ConvDecoder(nn.Module):
                  in_features=64,
                  hid=(128, 256),
                  out_shape=None,
-                 num_classes=None):
+                 num_classes=None,
+                 gen_noise = False,
+                 mu_init = 0,
+                 var_init = 1):
         super(ConvDecoder, self).__init__()
 
         assert len(hid) > 0, hid
         self.out_shape = out_shape
         self.num_classes = num_classes
+        self.gen_noise = gen_noise
+        if gen_noise:
+            in_features += 8
+            self.gen_means = torch.nn.Parameter(data=torch.ones(8).to(self.device)*mu_init, requires_grad=True)
+            self.gen_vars = torch.nn.Parameter(data=torch.ones(8).to(self.device)*var_init, requires_grad=True)
         self.fc = nn.Sequential(nn.Linear(in_features,
                                           hid[0] * np.prod(out_shape[2:])),
                                 nn.ReLU())
@@ -48,6 +56,10 @@ class ConvDecoder(nn.Module):
     def forward(self, x, max_shape=(0,0), class_pred=False):
 
         N = x.shape[0]
+        if self.gen_noise:
+            noise = torch.randn(N,8)
+            noise = torch.add(torch.mul(noise,self.gen_vars),self.gen_means)
+            x = torch.cat([x,noise])
         x = self.fc(x).view(N, -1, *self.out_shape[2:]) # N,128,11,11
         out_shape = self.out_shape
         if sum(max_shape) > 0:
