@@ -27,9 +27,11 @@ if __name__ == '__main__':
     parser.add_argument('--gamma', type=float, default=0.1, help='learning rate decay factor')
 
     #model
-    parser.add_argument('--mu_init', default=0 )
-    parser.add_argument('--var_init', default=1)
-    parser.add_argument('--csim_weight', default=1)
+    parser.add_argument('-tn','--train_noise', default=False, action='store_true')
+    parser.add_argument('--var_init', default=1, type=float)
+    parser.add_argument('--mu_scale', default=1, type=float)
+    parser.add_argument('--var_scale', default=0.1, type=float)
+    parser.add_argument('--csim_weight', default=1, type=float)
     #misc
     #nothing yet 
 
@@ -44,12 +46,11 @@ if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     #now import packages who might need to have device set before hand 
-    from ppuda.ghn.nn import GHN
     from ppuda.deepnets1m.graph import Graph, GraphBatch
     from ppuda.ghn.decoder import ConvDecoder
 
     #get dataloaders for image data 
-    trainloader, testloader = utils.load_dataset(data='cifar', train_bs=args.batch_size, test_bs=512,
+    trainloader, testloader = utils.load_dataset(data='cifar', train_bs=args.batch_size, test_bs=256,
                                              num_examples=None, seed=args.data_split_seed)
     bs = args.batch_size
 
@@ -61,16 +62,18 @@ if __name__ == '__main__':
                         hid=(hid * 4, hid * 8),
                         out_shape=(64,64,3,3),
                         num_classes=10,
-                        gen_noise=True,
-                        mu_init=args.mu_init,
-                        var_init=args.var_init)
+                        gen_noise = True,
+                        var_init = args.var_init,
+                        mu_scale  = args.mu_scale,
+                        var_scale = args.var_scale,
+                        train_noise= args.train_noise)
 
     ghn = ghn.to(device)
     ghn.train()
     
     #get the resnets with their graphs
     res20, res32, res44, res56 = resnet20(), resnet32(), resnet44(), resnet56()
-    models = [res32, res44, res56]
+    models = [res32, res44, res56] 
     
     graphs = GraphBatch([Graph(model, ve_cutoff=50) for model in models])
     res20_graph = GraphBatch([Graph(res20, ve_cutoff=50)])
@@ -108,9 +111,8 @@ if __name__ == '__main__':
 
         start_epoch = time.time()
 
-        for _,(images,labels) in enumerate(trainloader):
-            if i>10:
-                break
+        for i,(images,labels) in enumerate(trainloader):
+            ce_loss = 0
             logits = 0
             loss = 0
             count = 0
@@ -125,7 +127,7 @@ if __name__ == '__main__':
                 logit_vec = []
                 for i,model in enumerate(models_pred):
                     y = model(images)
-                    logit_vec.append(y.flatten)
+                    logit_vec.append(y.flatten())
                     ce_loss += F.cross_entropy(y, labels)
                     logits += y 
                     count += 1 
@@ -154,7 +156,8 @@ if __name__ == '__main__':
             train_ce.update(ce_loss.item(),n)
             train_cossim.update(cos_sim.item(),n)
 
-        for _,(images,labels) in enumerate(testloader):
+        for i,(images,labels) in enumerate(testloader):
+            ce_loss = 0
             logits = 0
             loss = 0
             count = 0
@@ -168,7 +171,7 @@ if __name__ == '__main__':
                 logit_vec = []
                 for i,model in enumerate(models_pred):
                     y = model(images)
-                    logit_vec.append(y.flatten)
+                    logit_vec.append(y.flatten())
                     ce_loss += F.cross_entropy(y, labels)
                     logits += y 
                     count += 1 
@@ -188,10 +191,11 @@ if __name__ == '__main__':
             val_ce.update(ce_loss.item(),n)
             val_cossim.update(cos_sim.item(),n)
 
+
             # for res20 
             for j in range(2):
-                res20 = ghn([res20],res20_graph)[0]
-                y = model(images)
+                res20 = ghn([res20],res20_graph)[0]  
+                y = res20(images)
                 if j == 0:
                     logits = y 
                 if j == 0:
@@ -215,8 +219,8 @@ if __name__ == '__main__':
         logger.add_scalar(epoch, 'val_ce', val_ce.avg)
         logger.add_scalar(epoch, 'val_cossim', val_cossim.avg)
         logger.add_scalar(epoch, 'val_top1', val_top1.avg)
-        logger.add_scalar(epoch, 'val_res_top1', val_res_top1.avg)
-        logger.add_scalar(epoch, 'val_res_cossim', val_res_cossim.avg)
+        logger.add_scalar(epoch, 'res_top1', val_res_top1.avg)
+        logger.add_scalar(epoch, 'two_res_cossim', val_res_cossim.avg)
         
 
         logger.iter_info()

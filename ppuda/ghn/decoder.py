@@ -27,18 +27,30 @@ class ConvDecoder(nn.Module):
                  out_shape=None,
                  num_classes=None,
                  gen_noise = False,
-                 mu_init = 0,
-                 var_init = 1):
+                 var_init = 1,
+                 mu_scale  = 1,
+                 var_scale = 0.1,
+                 train_noise=False):
         super(ConvDecoder, self).__init__()
 
         assert len(hid) > 0, hid
         self.out_shape = out_shape
         self.num_classes = num_classes
         self.gen_noise = gen_noise
+        #IMPORTANT NOTE:what is called var here, is actually the sqrt of the std, 
+        # such that it is equal to std when squared. We want to square such that the 
+        # values are always bigger then 0
         if gen_noise:
+            mean_data = torch.zeros(8)
+            var_data = torch.ones(8)*torch.sqrt(torch.ones(1)*var_init) 
+            if train_noise:
+                # if the noise parameters shall be learned, we want to initialise such that 
+                # the init values differ ! 
+                mean_data = torch.randn(8)*mu_scale
+                var_data = torch.tensor([max(torch.sqrt(torch.ones(1)*1e-3),torch.sqrt(torch.randn(1)*var_scale+var_init)) for i in range(8)])#torch.randn(8)*torch.sqrt(torch.ones(1)*0.1)+torch.ones(8)
             in_features += 8
-            self.gen_means = torch.nn.Parameter(data=torch.ones(8)*mu_init, requires_grad=True)
-            self.gen_vars = torch.nn.Parameter(data=torch.ones(8)*var_init, requires_grad=True)
+            self.gen_means = torch.nn.Parameter(data=mean_data, requires_grad=train_noise)
+            self.gen_vars = torch.nn.Parameter(data=var_data, requires_grad=train_noise)
         self.fc = nn.Sequential(nn.Linear(in_features,
                                           hid[0] * np.prod(out_shape[2:])),
                                 nn.ReLU())
@@ -57,9 +69,9 @@ class ConvDecoder(nn.Module):
 
         N = x.shape[0]
         if self.gen_noise:
-            noise = torch.randn(N,8)
-            noise = torch.add(torch.mul(noise,self.gen_vars),self.gen_means)
-            x = torch.cat([x,noise])
+            noise = torch.randn(N,8).to(x.device)
+            noise = torch.add(torch.mul(noise,self.gen_vars**2),self.gen_means)
+            x = torch.cat([x,noise],dim=1)
         x = self.fc(x).view(N, -1, *self.out_shape[2:]) # N,128,11,11
         out_shape = self.out_shape
         if sum(max_shape) > 0:
