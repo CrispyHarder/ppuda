@@ -37,8 +37,8 @@ class ConvDecoder(nn.Module):
         self.gen_noise = gen_noise
         if gen_noise:
             in_features += 8
-            self.gen_means = torch.nn.Parameter(data=torch.ones(8).to(self.device)*mu_init, requires_grad=True)
-            self.gen_vars = torch.nn.Parameter(data=torch.ones(8).to(self.device)*var_init, requires_grad=True)
+            self.gen_means = torch.nn.Parameter(data=torch.ones(8)*mu_init, requires_grad=True)
+            self.gen_vars = torch.nn.Parameter(data=torch.ones(8)*var_init, requires_grad=True)
         self.fc = nn.Sequential(nn.Linear(in_features,
                                           hid[0] * np.prod(out_shape[2:])),
                                 nn.ReLU())
