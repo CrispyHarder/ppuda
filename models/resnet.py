@@ -120,6 +120,8 @@ class ResNet(nn.Module):
             path = os.path.join('data','resnet20','global_init_models',init_mode)
             if init_mode == 'ghn_noise':
                 ghn = utils.load_ghn_noise(path,device=device)
+            if init_mode == 'ghn_default':
+                ghn = utils.load_ghn_default(path,device=device)
             ghn(self)
             return
 

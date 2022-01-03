@@ -50,6 +50,14 @@ def load_ghn_noise(path, device=None):
         ghn.load_state_dict(torch.load(os.path.join(path, 'ghn_params.torch')))
     return ghn
 
+def load_ghn_default(path, device=None):
+
+    from ppuda.ghn.nn import GHN2
+
+    ghn = GHN2('cifar10').to(device)
+    
+    return ghn
+
 class ConvDataset(Dataset):
     def __init__(self, file=None, data=None):
         super(ConvDataset, self).__init__()
