@@ -19,7 +19,7 @@ args = parser.parse_args()
 logs_path = os.path.join('logs',f'exman-{args.train_script}.py','runs')
 run = [os.path.join(logs_path,run) for run in os.listdir(logs_path) if run.startswith(args.run)][0]
 
-METR_NAMES = ['time','train_loss','train_top1','val_top1','val_res_top1','val_loss','train_top5','val_top5']
+METR_NAMES = ['time','train_loss','train_ce','train_cossim','train_top1','val_loss','val_ce','val_cossim','val_top1','res_top1','two_res_cossim']
 SAVE_PATH = os.path.join('..','..','small-results',str(date.today()),args.train_script,args.run)
 SAVE_SPEC = ''
 SAVE_PLOTS = args.no_save
@@ -31,7 +31,7 @@ if not os.path.exists(SAVE_PATH):
 
 file  = os.path.join(run,f'{args.train_script}.py-logs.csv')
 
-data = np.genfromtxt(file,delimiter=',')[:,1:9]
+data = np.genfromtxt(file,delimiter=',')[:,1:len(METR_NAMES)+1]
 epochs = np.shape(data)[0]
 
 for i,m_name in enumerate(METR_NAMES):

@@ -38,7 +38,7 @@ def _weights_init(m):
     if isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
         init.kaiming_normal_(m.weight)
 
-class LambdaLayer(nn.Module): 
+class LambdaLayer(nn.Module):
     def __init__(self, lambd):
         super(LambdaLayer, self).__init__()
         self.lambd = lambd
@@ -114,6 +114,17 @@ class ResNet(nn.Module):
         #  we dont have to do anything
         if init_mode == 'he':
             return
+
+        if init_mode.startswith('ghn'):
+            print('ghn init')
+            path = os.path.join('data','resnet20','global_init_models',init_mode)
+            if init_mode == 'ghn_noise':
+                ghn = utils.load_ghn_noise(path,device=device)
+            if init_mode == 'ghn_default':
+                ghn = utils.load_ghn_default(path,device=device)
+            ghn(self)
+            return
+
         self.apply(utils.weight_init(module=nn.Conv2d, initf=nn.init.xavier_normal_))
         self.apply(utils.weight_init(module=nn.Linear, initf=nn.init.xavier_normal_))
 
