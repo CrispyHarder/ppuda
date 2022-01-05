@@ -58,6 +58,13 @@ def load_ghn_default(path, device=None):
     
     return ghn
 
+def bn_warm_start(data,net,device):
+    net.train()
+    for i,(x,_) in enumerate(data):
+        x = x.to(device)
+        net(x)
+    return
+
 class ConvDataset(Dataset):
     def __init__(self, file=None, data=None):
         super(ConvDataset, self).__init__()

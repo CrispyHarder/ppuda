@@ -121,7 +121,7 @@ class ResNet(nn.Module):
                 ghn = utils.load_ghn_noise(path,device=device)
             if init_mode == 'ghn_default':
                 ghn = utils.load_ghn_default(path,device=device)
-            ghn(self)
+            self = ghn.forward(self,bn_train=False).to(device)
             return
 
         self.apply(utils.weight_init(module=nn.Conv2d, initf=nn.init.xavier_normal_))
