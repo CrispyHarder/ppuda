@@ -36,7 +36,6 @@ parser = myexman.ExParser(file=__file__)
 parser.add_argument('--name', default='')
 parser.add_argument('--data', default='cifar')
 parser.add_argument('--gpu_id', default='0')
-parser.add_argument('--num_examples', default=None, type=int)
 parser.add_argument('--data_split_seed', default=456, type=int)
 parser.add_argument('--seed', default=5743, type=int)
 parser.add_argument('--resume', default='')
@@ -45,12 +44,7 @@ parser.add_argument('--bs', default=128, type=int, help='Batch size')
 parser.add_argument('--test_bs', default=500, type=int, help='Batch size for test dataloader')
 
 #model settings
-parser.add_argument('--model', default='resnet20')
-parser.add_argument('--model_size', default=1., type=float)
-parser.add_argument('--net_cfg', default='E')
-parser.add_argument('--hid_dim', default=[32, 64], type=int, nargs='+')
 parser.add_argument('--n_classes', default=10, type=int)
-parser.add_argument('--do', default=[], type=float, nargs='*')
 
 #model init settings MULTI init (if used, single init is ignored)
 parser.add_argument('--mult_init_mode', default= 'xavier', type = str,
@@ -67,16 +61,10 @@ parser.add_argument('--milestones', type=int, nargs='*', default=[80,100])
 parser.add_argument('--gammas', default=[0.5,0.2], nargs='*', type=float)
 parser.add_argument('--decrease_from', default=0, type=int) #unused 
 
-# loss function settings 
-parser.add_argument('--l2', default=0., type=float)
-parser.add_argument('--dwp_reg', default=0., type=float)
 
 #evaluation and leftovers
 parser.add_argument('--eval_freq', default=1, type=int)
-parser.add_argument('--dwp_samples', default=1, type=int)
-parser.add_argument('--rfe', default=0, type=int)
-parser.add_argument('--fastconv', default=0, type=int)
-parser.add_argument('--aug', default=0, type=int)
+
 
 
 args = parser.parse_args()
@@ -96,8 +84,8 @@ logger = Logger('logs', base=args.root, fmt=fmt)
 
 # Load Datasets
 trainloader, testloader = utils.load_dataset(data=args.data, train_bs=args.bs, test_bs=args.test_bs,
-                                             num_examples=args.num_examples, seed=args.data_split_seed,
-                                             augmentation=(args.aug == 1))
+                                             num_examples=None, seed=args.data_split_seed,
+                                             augmentation=False)
                                             
 # Network
 net = ResNet([3,3,3],num_classes=args.n_classes)
@@ -151,7 +139,7 @@ for e in range(1, args.epochs + 1):
         train_nll.add(data_term.item() * x.size(0), x.size(0))
         train_loss.add(loss.item() * x.size(0), x.size(0))
 
-    if ((e % args.eval_freq) == 0 or e == 1) and (args.fastconv == 0):
+    if ((e % args.eval_freq) == 0 or e == 1):
         net.eval()
 
         logp_test, labels = predict(testloader, net)
