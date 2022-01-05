@@ -111,7 +111,7 @@ trainloader, testloader = utils.load_dataset(data=args.data, train_bs=args.bs, t
                                              augmentation=(args.aug == 1))
                                              
 if args.model == 'resnet20':
-    net = ResNet([3,3,3],num_classes=args.n_classes).to(device)
+    net = ResNet([3,3,3],num_classes=args.n_classes)
 else:
     raise NotImplementedError
 
@@ -127,6 +127,7 @@ else:
 if args.dwp_reg != 0:
     net.set_dwp_regularizer(args.vae_list)
 
+net = net.to(device)
 # Optimizer
 train_params = []
 if args.rfe == 0:

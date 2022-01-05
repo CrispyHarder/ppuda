@@ -48,7 +48,7 @@ def load_ghn_noise(path, device=None):
         ghn.load_state_dict(torch.load(os.path.join(path, 'ghn_params.torch'),map_location=device))
     else:
         ghn.load_state_dict(torch.load(os.path.join(path, 'ghn_params.torch')))
-    return ghn
+    return ghn.to(device)
 
 def load_ghn_default(path, device=None):
 
