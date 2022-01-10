@@ -50,6 +50,29 @@ def load_ghn_noise(path, device=None):
         ghn.load_state_dict(torch.load(os.path.join(path, 'ghn_params.torch')))
     return ghn.to(device)
 
+def load_ghn_base(path, device=None):
+
+    from ppuda.ghn.nn import GHN2
+    from ppuda.ghn.decoder import ConvDecoder
+
+    with open(os.path.join(path, 'params.yaml')) as f:
+        args = yaml.full_load(f)
+
+    ghn = GHN2('cifar10')
+    hid = ghn.hid
+    
+    ghn.decoder = ConvDecoder(in_features=hid,
+                        hid=(hid * 4, hid * 8),
+                        out_shape=(64,64,3,3),
+                        num_classes=10,
+                        gen_noise = False)
+
+    if device:
+        ghn.load_state_dict(torch.load(os.path.join(path, 'ghn_params.torch'),map_location=device))
+    else:
+        ghn.load_state_dict(torch.load(os.path.join(path, 'ghn_params.torch')))
+    return ghn.to(device)
+
 def load_ghn_default(path, device=None):
 
     from ppuda.ghn.nn import GHN2

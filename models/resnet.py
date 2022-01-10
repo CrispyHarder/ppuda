@@ -121,6 +121,8 @@ class ResNet(nn.Module):
                 ghn = utils.load_ghn_noise(path,device=device)
             if init_mode == 'ghn_default':
                 ghn = utils.load_ghn_default(path,device=device)
+            if init_mode == 'ghn_base':
+                ghn = utils.load_ghn_base(path,device=device)
             self = ghn.forward(self,bn_train=False).to(device)
             return
 
