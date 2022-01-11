@@ -107,6 +107,10 @@ it = 0
 #add a tensorboard writer
 writer = SummaryWriter(args.root)
 best_acc = 0.
+
+#save the state dict of the resnet when initialising
+torch.save(net.state_dict(), os.path.join(args.root, 'net_params_init.torch'))
+
 for e in range(1, args.epochs + 1):
     if args.milestones:
         lrscheduler.step()
