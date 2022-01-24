@@ -5,7 +5,10 @@ from torch.utils.data import Dataset
 from torch.autograd import Variable
 from torchvision import transforms
 import PIL
-
+import pandas as pd 
+from PIL import Image
+import torchvision.transforms as transforms 
+from torch.utils.data import random_split
 from torch import distributions as dist
 import torch.nn.functional as F
 import torchvision
@@ -112,6 +115,30 @@ def get_dataloaders(file, train_bs, test_bs, train_size=0.8):
 
     return trainloader, testloader, D
 
+class Pcam_dataset(Dataset):
+    def __init__(self, data_dir, transform,data_type="train"):      
+    
+        # Get Image File Names
+        cdm_data=os.path.join(data_dir,data_type)  # directory of files
+        file_names = os.listdir(cdm_data) # get list of images in that directory
+        self.full_filenames = [os.path.join(cdm_data, f) for f in file_names]   # get the full path to images
+        
+        # Get Labels
+        labels_data=os.path.join(data_dir,"train_labels.csv") # labels are in a csv file named train_labels.csv
+        labels_df=pd.read_csv(labels_data)
+        labels_df.set_index("id", inplace=True) # set data frame index to id
+        self.labels = [labels_df.loc[filename[:-4]].values[0] for filename in file_names] # obtain labels from df
+        self.transform = transform
+      
+    def __len__(self):
+        return len(self.full_filenames) # size of dataset
+      
+    def __getitem__(self, idx):
+        # open image, apply transforms and return with label
+        image = Image.open(self.full_filenames[idx])  # Open Image with PIL
+        image = self.transform(image) # Apply Specific Transformation to Image
+        return image, self.labels[idx]
+
 
 def load_dataset(data, train_bs, test_bs, num_examples=None, augmentation=True, data_root=DATA_ROOT,
                  shuffle=True, seed=42):
@@ -134,6 +161,28 @@ def load_dataset(data, train_bs, test_bs, num_examples=None, augmentation=True, 
                                           train_size=num_examples, random_state=42)
             trainset.train_data = a
             trainset.train_labels = b
+    elif data == 'pcam':
+        # get general data, is not splitted or transformed yet
+        data_dir = os.path.join(DATA_ROOT,'pcam')
+        data_transformer = transforms.Compose([transforms.ToTensor()])
+        img_dataset = Pcam_dataset(data_dir,data_transformer,'train')
+        #now split the data
+        len_img=len(img_dataset)
+        len_train=int(0.8*len_img)
+        len_val=len_img-len_train
+        train_ts,val_ts=random_split(img_dataset,[len_train,len_val], generator=torch.Generator().manual_seed(seed)) # random split 80/20
+        # set the transformations 
+        tr_transf = transforms.Compose([
+            transforms.RandomHorizontalFlip(p=0.5), 
+            transforms.RandomVerticalFlip(p=0.5),  
+            transforms.RandomRotation(45),         
+            transforms.RandomResizedCrop(96,scale=(0.8,1.0),ratio=(1.0,1.0)),
+            transforms.ToTensor()])
+        val_transf = transforms.Compose([transforms.ToTensor()])
+        train_ts.transform=tr_transf
+        val_ts.transform=val_transf
+        trainset = train_ts
+        testset = val_ts
     elif data == 'cifar100':
         trainset = torchvision.datasets.CIFAR100(root=data_root, train=True, download=True,
                                                  transform=transform_train if augmentation else transform_test)
