@@ -50,9 +50,7 @@ if __name__ == '__main__':
     from ppuda.ghn.decoder import ConvDecoder
 
     #get dataloaders for image data 
-    trainloader, testloader = utils.load_dataset(data='cifar', train_bs=args.batch_size, test_bs=256,
-                                             num_examples=None, seed=args.data_split_seed)
-    bs = args.batch_size
+    trainloader, valloader, _ = utils.load_cifar10_loaders(args.bs, args.test_bs)
 
     #load/init the model 
     from ppuda.ghn.nn import GHN2
@@ -95,6 +93,76 @@ if __name__ == '__main__':
     #Training part 
     logger = Logger(name='logs', base=args.root)
     best_loss = 11e8
+
+    val_loss = utils.AvgrageMeter()
+    val_ce = utils.AvgrageMeter()
+    val_cossim = utils.AvgrageMeter()
+    val_top1 = utils.AvgrageMeter()
+    val_res_cossim = utils.AvgrageMeter()
+    val_res_top1 = utils.AvgrageMeter()
+    epoch = 0
+    for i,(images,labels) in enumerate(valloader):
+        ce_loss = 0
+        logits = 0
+        loss = 0
+        count = 0
+
+        images = images.to(device)
+        labels = labels.to(device)
+
+        #for validation models 
+        for j in range(2):
+            models_pred = ghn(models,graphs)
+            logit_vec = []
+            for i,model in enumerate(models_pred):
+                y = model(images)
+                logit_vec.append(y.flatten())
+                ce_loss += F.cross_entropy(y, labels)
+                logits += y 
+                count += 1 
+            if j == 0:
+                logits_0 = torch.cat(logit_vec).to(device)
+            if j == 1:
+                logits_1 = torch.cat(logit_vec).to(device)
+                cos_sim = CosineSimilarity(logits_0,logits_1)
+        ce_loss = ce_loss/count 
+        logits = logits/count
+        loss = ce_loss + cos_sim * csim_weight
+
+        prec1, _ = accuracy(logits, labels, topk=(1, 5))
+        n = len(labels)
+        val_loss.update(loss.item(),n)
+        val_top1.update(prec1.item(),n)
+        val_ce.update(ce_loss.item(),n)
+        val_cossim.update(cos_sim.item(),n)
+
+        # for res20 
+        for j in range(2):
+            res20 = ghn([res20],res20_graph)[0]  
+            y = res20(images)
+            if j == 0:
+                logits = y 
+            if j == 0:
+                logits_0 = y.flatten().to(device)
+            if j == 1:
+                logits_1 = y.flatten().to(device)
+                cos_sim = CosineSimilarity(logits_0,logits_1)
+        
+        prec1, _ = accuracy(logits, labels, topk=(1, 5))
+        n = len(labels)
+        val_res_top1.update(prec1.item(),n)
+        val_res_cossim.update(cos_sim.item(),n)
+
+        logger.add_scalar(epoch, 'val_loss', val_loss.avg)
+        logger.add_scalar(epoch, 'val_ce', val_ce.avg)
+        logger.add_scalar(epoch, 'val_cossim', val_cossim.avg)
+        logger.add_scalar(epoch, 'val_top1', val_top1.avg)
+        logger.add_scalar(epoch, 'res_top1', val_res_top1.avg)
+        logger.add_scalar(epoch, 'two_res_cossim', val_res_cossim.avg)
+        logger.iter_info()
+        logger.save()
+        torch.save(ghn.state_dict(), os.path.join(args.root, 'ghn_params_init.torch'))
+
     for epoch in range(1, args.num_epochs + 1):
         
         train_loss = utils.AvgrageMeter()
@@ -156,7 +224,7 @@ if __name__ == '__main__':
             train_ce.update(ce_loss.item(),n)
             train_cossim.update(cos_sim.item(),n)
 
-        for i,(images,labels) in enumerate(testloader):
+        for i,(images,labels) in enumerate(valloader):
             ce_loss = 0
             logits = 0
             loss = 0
