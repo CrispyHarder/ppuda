@@ -139,7 +139,26 @@ class Pcam_dataset(Dataset):
         image = self.transform(image) # Apply Specific Transformation to Image
         return image, self.labels[idx]
 
+def load_cifar10_loaders(bs, test_bs):
+    data_root = DATA_ROOT
+    transform_test = transforms.Compose([
+        transforms.ToTensor(),
+    ])
 
+    trainset = torchvision.datasets.CIFAR10(root=data_root, train=True, download=True, transform=transform_test)
+    testset = torchvision.datasets.CIFAR10(root=data_root, train=False, download=True, transform=transform_test)
+    #split train in train and val set
+    n = len(trainset)
+    len_val = int(0.1*n)
+    len_train = n-len_val
+    trainset, valset =random_split(trainset,[len_train,len_val], generator=torch.Generator().manual_seed(42))
+
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=bs, shuffle=True, num_workers=0)
+    valloader = torch.utils.data.DataLoader(valset, batch_size=test_bs, shuffle=False, num_workers=0)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=test_bs, shuffle=False, num_workers=0)
+
+    return trainloader, valloader, testloader
+    
 def load_dataset(data, train_bs, test_bs, num_examples=None, augmentation=True, data_root=DATA_ROOT,
                  shuffle=True, seed=42):
     transform_train = transforms.Compose([
