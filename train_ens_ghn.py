@@ -161,7 +161,7 @@ if __name__ == '__main__':
         logger.add_scalar(epoch, 'two_res_cossim', val_res_cossim.avg)
         logger.iter_info()
         logger.save()
-        torch.save(ghn.state_dict(), os.path.join(args.root, 'ghn_params_init.torch'))
+        torch.save(ghn.state_dict(), os.path.join(args.root, 'ghn_params_initd.torch'))
 
     for epoch in range(1, args.num_epochs + 1):
         
