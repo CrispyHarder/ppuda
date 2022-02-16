@@ -158,6 +158,55 @@ def load_cifar10_loaders(bs, test_bs):
     testloader = torch.utils.data.DataLoader(testset, batch_size=test_bs, shuffle=False, num_workers=0)
 
     return trainloader, valloader, testloader
+
+class Pcam_dataset(Dataset):
+    def __init__(self, data_dir, transform,data_type="train"):      
+    
+        # Get Image File Names
+        cdm_data=os.path.join(data_dir,data_type)  # directory of files
+        file_names = os.listdir(cdm_data) # get list of images in that directory
+        self.full_filenames = [os.path.join(cdm_data, f) for f in file_names]   # get the full path to images
+        self.images = []
+        for name in self.full_filenames:
+            image = Image.open(name)
+            image = transform(image)
+            self.images.append(image)
+        self.images = torch.stack(self.images)
+        # Get Labels
+        labels_data=os.path.join(data_dir,"train_labels.csv") # labels are in a csv file named train_labels.csv
+        labels_df=pd.read_csv(labels_data)
+        labels_df.set_index("id", inplace=True) # set data frame index to id
+        self.labels = [labels_df.loc[filename[:-4]].values[0] for filename in file_names] # obtain labels from df
+        self.transform = transform
+      
+    def __len__(self):
+        return len(self.full_filenames) # size of dataset
+      
+    def __getitem__(self, idx):
+        # open image, apply transforms and return with label
+        image = self.images[idx]
+        return image, self.labels[idx]
+
+def load_pcam_loaders(train_bs,test_bs):
+    # get general data, is not splitted or transformed yet
+    data_dir = os.path.join(DATA_ROOT,'pcam')
+    data_transformer = transforms.Compose([transforms.ToTensor()])
+    img_dataset = Pcam_dataset(data_dir,data_transformer,'train')
+    #now split the data; we have 220025 images 
+    len_train = 153600
+    len_val = 25000
+    len_test = 41425
+    train_ts, val_ts ,test_ts=random_split(img_dataset,[len_train,len_val, len_test], generator=torch.Generator().manual_seed(42)) 
+    # set the transformations 
+    transf = transforms.Compose([transforms.ToTensor()])
+    train_ts.transform=transf
+    val_ts.transform=transf
+    test_ts.transform = transf
+
+    trainloader = torch.utils.data.DataLoader(train_ts, batch_size=train_bs, shuffle=True, num_workers=0)
+    valloader = torch.utils.data.DataLoader(val_ts, batch_size=test_bs, shuffle=False, num_workers=0)
+    testloader = torch.utils.data.DataLoader(test_ts, batch_size=test_bs, shuffle=False, num_workers=0)
+    return trainloader,valloader,testloader
     
 def load_dataset(data, train_bs, test_bs, num_examples=None, augmentation=True, data_root=DATA_ROOT,
                  shuffle=True, seed=42):
