@@ -50,7 +50,7 @@ if __name__ == '__main__':
     from ppuda.ghn.decoder import ConvDecoder
 
     #get dataloaders for image data 
-    trainloader, valloader, _ = utils.load_cifar10_loaders(args.bs, args.test_bs)
+    trainloader, valloader, _ = utils.load_cifar10_loaders(args.batch_size, 500)
 
     #load/init the model 
     from ppuda.ghn.nn import GHN2
