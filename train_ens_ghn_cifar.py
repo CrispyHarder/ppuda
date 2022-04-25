@@ -28,6 +28,7 @@ if __name__ == '__main__':
     parser.add_argument('--gamma', type=float, default=0.1, help='learning rate decay factor')
 
     #model
+    parser.add_argument('-gn','--gen_noise', default=True, action='store_false')
     parser.add_argument('-tn','--train_noise', default=False, action='store_true')
     parser.add_argument('--var_init', default=1, type=float)
     parser.add_argument('--mu_scale', default=1, type=float)
