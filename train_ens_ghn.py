@@ -94,6 +94,8 @@ if __name__ == '__main__':
     logger = Logger(name='logs', base=args.root)
     best_loss = 11e8
 
+    #eval step before training 
+    ghn.eval()
     val_loss = utils.AvgrageMeter()
     val_ce = utils.AvgrageMeter()
     val_cossim = utils.AvgrageMeter()
@@ -161,7 +163,7 @@ if __name__ == '__main__':
         logger.add_scalar(epoch, 'two_res_cossim', val_res_cossim.avg)
         logger.iter_info()
         logger.save()
-        torch.save(ghn.state_dict(), os.path.join(args.root, 'ghn_params_initd.torch'))
+        torch.save(ghn.state_dict(), os.path.join(args.root, 'ghn_params_init.torch'))
 
     for epoch in range(1, args.num_epochs + 1):
         
@@ -180,6 +182,7 @@ if __name__ == '__main__':
         start_epoch = time.time()
 
         for i,(images,labels) in enumerate(trainloader):
+            ghn.train()
             ce_loss = 0
             logits = 0
             loss = 0
@@ -225,6 +228,7 @@ if __name__ == '__main__':
             train_cossim.update(cos_sim.item(),n)
 
         for i,(images,labels) in enumerate(valloader):
+            ghn.eval()
             ce_loss = 0
             logits = 0
             loss = 0
