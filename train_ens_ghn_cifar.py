@@ -97,7 +97,6 @@ if __name__ == '__main__':
     best_loss = 11e8
 
     # a first eval before training 
-    ghn.eval()
     val_loss = utils.AvgrageMeter()
     val_ce = utils.AvgrageMeter()
     val_cossim = utils.AvgrageMeter()
@@ -191,7 +190,6 @@ if __name__ == '__main__':
         start_epoch = time.time()
 
         for i,(images,labels) in enumerate(trainloader):
-            ghn.train()
             ce_loss = 0
             logits = 0
             loss = 0
@@ -237,7 +235,6 @@ if __name__ == '__main__':
             train_cossim.update(cos_sim.item(),n)
 
         for i,(images,labels) in enumerate(valloader):
-            ghn.eval()
             ce_loss = 0
             logits = 0
             loss = 0
