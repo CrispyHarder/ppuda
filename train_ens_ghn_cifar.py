@@ -18,7 +18,6 @@ if __name__ == '__main__':
     parser.add_argument('--num_epochs', default=300, type=int)
     parser.add_argument('--batch_size', default=64, type=int)
     parser.add_argument('--seed', default=42, type=int)
-    parser.add_argument('--data_split_seed', default=42, type=int)
     parser.add_argument('--gpu_id', default='0')
 
     #optimisation
