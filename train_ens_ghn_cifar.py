@@ -62,7 +62,7 @@ if __name__ == '__main__':
                         hid=(hid * 4, hid * 8),
                         out_shape=(64,64,3,3),
                         num_classes=10,
-                        gen_noise = True,
+                        gen_noise = args.gen_noise,
                         var_init = args.var_init,
                         mu_scale  = args.mu_scale,
                         var_scale = args.var_scale,
