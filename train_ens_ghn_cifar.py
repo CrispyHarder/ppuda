@@ -89,7 +89,7 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adam(ghn.parameters(), lr=args.lr, weight_decay=args.weight_decay) 
     scheduler = MultiStepLR(optimizer, milestones=args.lr_steps, gamma=args.gamma)
     CosineSimilarity = torch.nn.CosineSimilarity(dim=0)
-    csim_weight =  args.csim_weight
+    csim_weight =  args.csim_weight if args.gen_noise else 0.
 
     #Training and evaluation below
     logger = Logger(name='logs', base=args.root)
