@@ -37,9 +37,11 @@ class ConvDecoder(nn.Module):
         self.out_shape = out_shape
         self.num_classes = num_classes
         self.gen_noise = gen_noise
-        #IMPORTANT NOTE:what is called var here, is actually the sqrt of the std, 
-        # such that it is equal to std when squared. We want to square such that the 
-        # values are always bigger then 0
+        #IMPORTANT NOTE:
+        # in case of train_noise = False:  
+        #   Noise is N(0,var_init^2) distributed 
+        # in case of train_noise = True:
+        #   Mu is initiated with N(0,mu_scale^2) and the std is initiated as N(var_init,var_scale^2)
         if gen_noise:
             mean_data = torch.zeros(8)
             var_data = torch.ones(8)*torch.sqrt(torch.ones(1)*var_init) 
