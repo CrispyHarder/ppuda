@@ -13,7 +13,8 @@ import time
 from torch.utils.tensorboard import SummaryWriter
 from torch.optim.lr_scheduler import MultiStepLR
 
-def predict(data,ghn):
+def predict(data,ghn,models,res20,graphs,res20_graph):
+
     val_loss = utils.AvgrageMeter()
     val_ce = utils.AvgrageMeter()
     val_cossim = utils.AvgrageMeter()
@@ -73,16 +74,14 @@ def predict(data,ghn):
         val_res_top1.update(prec1.item(),n)
         val_res_cossim.update(cos_sim.item(),n)
 
-    return val_loss.avg, val_ce.avg, val_cossim.avg, val_top1.avg, val_res_cossim.avg, val_res_top1
+    return val_loss.avg, val_ce.avg, val_cossim.avg, val_top1.avg, val_res_cossim.avg, val_res_top1.avg
         
 
-def eval_step(it,net,data,logger,writer,args,opt,train_loss,train_ce,
-    train_cossim,train_top1,lrscheduler,step=True):
+def eval_step(it,net,data,logger,writer,args,train_loss,train_ce,train_cossim,train_top1,scheduler,models, res20, graphs, res20_graph,step=True):
     global t0 
     global best_loss
     
-    with torch.no_grad():
-        val_loss, val_ce, val_cossim, val_top1, val_res_cossim, val_res_top1 = predict(data,net)
+    val_loss, val_ce, val_cossim, val_top1, val_res_cossim, val_res_top1 = predict(data,net,models, res20, graphs, res20_graph)
     
     logger.add_scalar(it, 'time', time.time()-t0)
     logger.add_scalar(it, 'train_loss', train_loss.avg)
@@ -135,6 +134,7 @@ if __name__ == '__main__':
     parser.add_argument('--gamma', type=float, default=0.1, help='learning rate decay factor')
 
     #model
+    parser.add_argument('-gn','--gen_noise', default=True, action='store_false')
     parser.add_argument('-tn','--train_noise', default=False, action='store_true')
     parser.add_argument('--var_init', default=1, type=float)
     parser.add_argument('--mu_scale', default=1, type=float)
@@ -158,7 +158,7 @@ if __name__ == '__main__':
     from ppuda.ghn.decoder import ConvDecoder
 
     #get dataloaders for image data 
-    trainloader, valloader, _ = utils.load_pcam_loaders(bs=args.batch_size, test_bs=500)
+    trainloader, valloader, _ = utils.load_pcam_loaders(train_bs=args.batch_size, test_bs=500) 
 
     #load/init the model 
     from ppuda.ghn.nn import GHN2
@@ -168,7 +168,7 @@ if __name__ == '__main__':
                         hid=(hid * 4, hid * 8),
                         out_shape=(64,64,3,3),
                         num_classes=10,
-                        gen_noise = True,
+                        gen_noise = args.gen_noise,
                         var_init = args.var_init,
                         mu_scale  = args.mu_scale,
                         var_scale = args.var_scale,
@@ -190,7 +190,6 @@ if __name__ == '__main__':
     for model in models:
         model = model.to(device)
     res20 = res20.to(device)
-
     
     #configure optimisation
     optimizer = torch.optim.Adam(ghn.parameters(), lr=args.lr, weight_decay=args.weight_decay) 
@@ -211,8 +210,9 @@ if __name__ == '__main__':
     train_ce = utils.AvgrageMeter()
     train_cossim = utils.AvgrageMeter()
     train_top1 = utils.AvgrageMeter()
-    eval_step(it,ghn,valloader,logger,writer,args,optimizer,train_loss,
-        train_ce,train_cossim,train_top1,scheduler,step=False)
+
+    eval_step(it,ghn,valloader,logger,writer,args,train_loss,train_ce,train_cossim,train_top1,scheduler,models, res20, graphs, res20_graph, step=False)
+
     torch.save(ghn.state_dict(), os.path.join(args.root, 'ghn_params_init.torch'))
 
     #training
@@ -264,9 +264,9 @@ if __name__ == '__main__':
             train_ce.update(ce_loss.item(),n)
             train_cossim.update(cos_sim.item(),n)
 
-            if it % 300 == 0: 
-                eval_step(it,ghn,valloader,logger,writer,args,optimizer,train_loss,
-                        train_ce,train_cossim,train_top1,scheduler,step=True)
+            if it % 300 == 0:
+                eval_step(it,ghn,valloader,logger,writer,args,train_loss,
+                        train_ce,train_cossim,train_top1,scheduler,models,res20, graphs, res20_graph,step=True)
                 train_loss = utils.AvgrageMeter()
                 train_ce = utils.AvgrageMeter()
                 train_cossim = utils.AvgrageMeter()
