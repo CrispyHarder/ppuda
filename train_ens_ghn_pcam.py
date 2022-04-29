@@ -10,6 +10,7 @@ import _dwp.myexman as myexman
 from ppuda.utils.darts_utils import accuracy
 from models.resnet import resnet20,resnet32,resnet44, resnet56
 import time
+import json 
 from torch.utils.tensorboard import SummaryWriter
 from torch.optim.lr_scheduler import MultiStepLR
 
@@ -79,7 +80,7 @@ def predict(data,ghn,models,res20,graphs,res20_graph):
 
 def eval_step(it,net,data,logger,writer,args,train_loss,train_ce,train_cossim,train_top1,scheduler,models, res20, graphs, res20_graph,step=True):
     global t0 
-    global best_loss
+    global perf_dict
     
     val_loss, val_ce, val_cossim, val_top1, val_res_cossim, val_res_top1 = predict(data,net,models, res20, graphs, res20_graph)
     
@@ -109,10 +110,15 @@ def eval_step(it,net,data,logger,writer,args,train_loss,train_ce,train_cossim,tr
     writer.add_scalar('val/res_top1', val_res_top1,it)
     writer.add_scalar('val/two_res_cossim', val_res_cossim,it)
 
-    is_best = best_loss > val_loss
-    if is_best:
-        best_loss = val_loss
-        torch.save(net.state_dict(), os.path.join(args.root, 'ghn_params_val.torch')) 
+    is_best_loss = (val_loss.avg < perf_dict['best_loss'])
+    if is_best_loss:
+        perf_dict['best_loss'] = val_loss.avg
+        torch.save(ghn.state_dict(), os.path.join(args.root, 'ghn_params_best_loss.torch')) 
+
+    is_best_ce = (val_ce.avg < perf_dict['best_ce'])
+    if is_best_ce:
+        perf_dict['best_ce'] = val_ce.avg
+        torch.save(ghn.state_dict(), os.path.join(args.root, 'ghn_params_best_ce.torch')) 
 
     t0 = time.time()
     if step:
@@ -200,7 +206,7 @@ if __name__ == '__main__':
     #Training and evaluation below
     logger = Logger(name='logs', base=args.root)
     writer = SummaryWriter(args.root)
-    best_loss = 11e8
+    perf_dict={'best_loss':11e8,'best_ce':11e8}
 
     it = 0
     t0 = time.time()
@@ -281,3 +287,5 @@ if __name__ == '__main__':
     torch.save(ghn.state_dict(), os.path.join(args.root, 'ghn_params_lastepoch.torch'))
     torch.save(optimizer.state_dict(), os.path.join(args.root, 'opt_params_lastepoch.torch'))
     writer.flush()
+    with open('perf_dict','w') as fp:
+        json.dump(perf_dict,fp)
