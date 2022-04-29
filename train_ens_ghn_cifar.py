@@ -9,13 +9,14 @@ import _dwp.myexman as myexman
 from ppuda.utils.darts_utils import accuracy
 from models.resnet import resnet20,resnet32,resnet44, resnet56
 import time
+import json 
 from torch.utils.tensorboard import SummaryWriter
 from torch.optim.lr_scheduler import MultiStepLR
 
 if __name__ == '__main__':
     parser = myexman.ExParser(file=__file__)
     #train settings 
-    parser.add_argument('--num_epochs', default=300, type=int)
+    parser.add_argument('--num_epochs', default=30, type=int)
     parser.add_argument('--batch_size', default=64, type=int)
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--gpu_id', default='0')
@@ -23,7 +24,7 @@ if __name__ == '__main__':
     #optimisation
     parser.add_argument('--lr', default=1e-3, type=float)
     parser.add_argument('--weight_decay', default=1e-5, type=float)
-    parser.add_argument('--lr_steps', type=str, default='200,250', help='epochs when to decrease lr')
+    parser.add_argument('--lr_steps', type=str, default='15,20', help='epochs when to decrease lr')
     parser.add_argument('--gamma', type=float, default=0.1, help='learning rate decay factor')
 
     #model
@@ -94,7 +95,7 @@ if __name__ == '__main__':
     #Training and evaluation below
     logger = Logger(name='logs', base=args.root)
     writer = SummaryWriter(args.root)
-    best_loss = 11e8
+    perf_dict={'best_loss':11e8,'best_ce':11e8}
 
     # a first eval before training 
     val_loss = utils.AvgrageMeter()
@@ -314,17 +315,21 @@ if __name__ == '__main__':
         writer.add_scalar('val/res_top1', val_res_top1.avg,epoch)
         writer.add_scalar('val/two_res_cossim', val_res_cossim.avg,epoch)
 
-        if (epoch-1) % 10 == 0:
-            torch.save(ghn.state_dict() , os.path.join(args.root, 'ghn_params_epoch_{}.torch'.format(epoch)))
-            torch.save(optimizer.state_dict(), os.path.join(args.root, 'opt_params_epoch_{}.torch'.format(epoch)))
 
-        is_best = (val_loss.avg < best_loss)
-        if is_best:
-            best_loss = val_loss.avg
-            torch.save(ghn.state_dict(), os.path.join(args.root, 'ghn_params_val.torch')) 
+        is_best_loss = (val_loss.avg < perf_dict['best_loss'])
+        if is_best_loss:
+            perf_dict['best_loss'] = val_loss.avg
+            torch.save(ghn.state_dict(), os.path.join(args.root, 'ghn_params_best_loss.torch')) 
+
+        is_best_ce = (val_ce.avg < perf_dict['best_ce'])
+        if is_best_ce:
+            perf_dict['best_ce'] = val_ce.avg
+            torch.save(ghn.state_dict(), os.path.join(args.root, 'ghn_params_best_ce.torch')) 
 
         scheduler.step()
-
+        
     torch.save(ghn.state_dict(), os.path.join(args.root, 'ghn_params_lastepoch.torch'))
     torch.save(optimizer.state_dict(), os.path.join(args.root, 'opt_params_lastepoch.torch'))
     writer.flush()
+    with open('perf_dict','w') as fp:
+        json.dump(perf_dict,fp)
