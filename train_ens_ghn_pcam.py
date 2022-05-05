@@ -127,7 +127,7 @@ def eval_step(it,net,data,logger,writer,args,train_loss,train_ce,train_cossim,tr
 if __name__ == '__main__':
     parser = myexman.ExParser(file=__file__)
     #train settings 
-    parser.add_argument('--num_epochs', default=50, type=int)
+    parser.add_argument('--num_epochs', default=6, type=int)
     parser.add_argument('--batch_size', default=64, type=int)
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--data_split_seed', default=42, type=int)
@@ -136,7 +136,7 @@ if __name__ == '__main__':
     #optimisation
     parser.add_argument('--lr', default=1e-3, type=float)
     parser.add_argument('--weight_decay', default=1e-5, type=float)
-    parser.add_argument('--lr_steps', type=str, default='40,50', help='epochs when to decrease lr')
+    parser.add_argument('--lr_steps', type=str, default='4,5', help='epochs when to decrease lr')
     parser.add_argument('--gamma', type=float, default=0.1, help='learning rate decay factor')
 
     #model
