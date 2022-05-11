@@ -164,7 +164,7 @@ if __name__ == '__main__':
     from ppuda.ghn.decoder import ConvDecoder
 
     #get dataloaders for image data 
-    trainloader, valloader, _ = utils.load_pcam_loaders(train_bs=args.batch_size, test_bs=500) 
+    trainloader, valloader, _ = utils.load_pcam_dataloaders(bs=args.batch_size) 
 
     #load/init the model 
     from ppuda.ghn.nn import GHN2
