@@ -110,14 +110,14 @@ def eval_step(it,net,data,logger,writer,args,train_loss,train_ce,train_cossim,tr
     writer.add_scalar('val/res_top1', val_res_top1,it)
     writer.add_scalar('val/two_res_cossim', val_res_cossim,it)
 
-    is_best_loss = (val_loss.avg < perf_dict['best_loss'])
+    is_best_loss = (val_loss < perf_dict['best_loss'])
     if is_best_loss:
-        perf_dict['best_loss'] = val_loss.avg
+        perf_dict['best_loss'] = val_loss
         torch.save(ghn.state_dict(), os.path.join(args.root, 'ghn_params_best_loss.torch')) 
 
-    is_best_ce = (val_ce.avg < perf_dict['best_ce'])
+    is_best_ce = (val_ce < perf_dict['best_ce'])
     if is_best_ce:
-        perf_dict['best_ce'] = val_ce.avg
+        perf_dict['best_ce'] = val_ce
         torch.save(ghn.state_dict(), os.path.join(args.root, 'ghn_params_best_ce.torch')) 
 
     t0 = time.time()
@@ -218,7 +218,6 @@ if __name__ == '__main__':
     train_top1 = utils.AvgrageMeter()
 
     eval_step(it,ghn,valloader,logger,writer,args,train_loss,train_ce,train_cossim,train_top1,scheduler,models, res20, graphs, res20_graph, step=False)
-
     torch.save(ghn.state_dict(), os.path.join(args.root, 'ghn_params_init.torch'))
 
     #training
