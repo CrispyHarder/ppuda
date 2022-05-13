@@ -286,5 +286,5 @@ if __name__ == '__main__':
     torch.save(ghn.state_dict(), os.path.join(args.root, 'ghn_params_lastepoch.torch'))
     torch.save(optimizer.state_dict(), os.path.join(args.root, 'opt_params_lastepoch.torch'))
     writer.flush()
-    with open('perf_dict','w') as fp:
+    with open(os.path.join(args.root,'perf_dict.json'),'w') as fp:
         json.dump(perf_dict,fp)
