@@ -102,11 +102,12 @@ t0 = time.time()
 trainloader, valloader, testloader = utils.load_pcam_loaders(args.bs, args.test_bs)
 load_time = time.time()
 print(f"loading data took {load_time-t0} seconds")
-net = ResNet([3,3,3],num_classes=args.n_classes).to(device)
+net = ResNet([3,3,3],num_classes=args.n_classes)
 
 # Initialization
 net.mult_weights_init(args.mult_init_mode, args.mult_init_root, device=device,dataset='pcam', prior=args.mult_init_prior)
 
+net = net.to(device)
 
 opt = torch.optim.SGD(net.parameters(), args.lr,
                                     momentum=args.momentum,
