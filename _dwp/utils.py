@@ -21,6 +21,37 @@ import yaml
 import pickle
 DATA_ROOT = os.path.join('data')# os.environ['DATA_ROOT']
 
+def load_ghn(path,device=None):
+
+    from ppuda.ghn.decoder import ConvDecoder
+    from ppuda.ghn.nn import GHN2
+
+    with open(os.path.join(path, 'params.yaml')) as f:
+        args = yaml.full_load(f)
+
+    ghn = GHN2('cifar10')
+    hid = ghn.hid
+    var_init = args['var_init']
+    mu_scale = args['mu_scale']
+    var_scale = args['var_scale']
+    train_noise = args['train_noise']
+    gen_noise = args['gen_noise']
+
+    ghn.decoder = ConvDecoder(in_features=hid,
+                        hid=(hid * 4, hid * 8),
+                        out_shape=(64,64,3,3),
+                        num_classes=10,
+                        gen_noise = gen_noise,
+                        var_init = var_init,
+                        mu_scale  = mu_scale,
+                        var_scale = var_scale,
+                        train_noise= train_noise)
+
+    if device:
+        ghn.load_state_dict(torch.load(os.path.join(path, 'ghn_params.torch'),map_location=device))
+    else:
+        ghn.load_state_dict(torch.load(os.path.join(path, 'ghn_params.torch')))
+    return ghn.to(device)
 
 def load_ghn_noise(path, device=None):
 

@@ -104,7 +104,7 @@ class ResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def mult_weights_init(self, init_mode, init_root, device, prior=None):
+    def mult_weights_init(self, init_mode, init_root, device, dataset, prior=None):
         '''initialises the layers of the resnet
         Args: 
             init_mode (str): how to initialise´
@@ -116,13 +116,8 @@ class ResNet(nn.Module):
             return
 
         if init_mode.startswith('ghn'):
-            path = os.path.join('data','resnet20','global_init_models',init_mode)
-            if init_mode == 'ghn_noise':
-                ghn = utils.load_ghn_noise(path,device=device)
-            if init_mode == 'ghn_default':
-                ghn = utils.load_ghn_default(path,device=device)
-            if init_mode == 'ghn_base':
-                ghn = utils.load_ghn_base(path,device=device)
+            path = os.path.join('data','resnet20','global_init_models',dataset,init_mode)
+            ghn = utils.load_ghn(path,device=device)
             self = ghn.forward(self,bn_train=False).to(device)
             return
 
