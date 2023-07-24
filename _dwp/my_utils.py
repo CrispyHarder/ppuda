@@ -7,6 +7,8 @@ import re
 import warnings
 from collections import Counter
 from torch.optim.lr_scheduler import _LRScheduler
+from torchvision.datasets import ImageFolder
+from torchvision import transforms
 
 
 class MultistepMultiGammaLR(_LRScheduler):
@@ -95,3 +97,20 @@ def sorted_alphanumeric(data):
     convert = lambda text: int(text) if text.isdigit() else text.lower()
     alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ] 
     return sorted(data, key=alphanum_key)
+
+def get_pcam_transfer_dataloaders(bs,n_ds=""):
+    base_dir = f"/gris/gris-f/homestud/charder/deep-weight-prior/data/pcam_folders{n_ds}"
+
+    train_dir = os.path.join(base_dir,"train")
+    valid_dir = os.path.join(base_dir,"valid")
+    test_dir = os.path.join(base_dir,"test")
+
+    train_ds = ImageFolder(root=train_dir,transform=transforms.ToTensor())
+    valid_ds = ImageFolder(root=valid_dir,transform=transforms.ToTensor())
+    test_ds = ImageFolder(root=test_dir,transform=transforms.ToTensor())
+
+    trainloader = torch.utils.data.DataLoader(train_ds, batch_size=bs, shuffle=True, num_workers=6)
+    valloader = torch.utils.data.DataLoader(valid_ds, batch_size=bs, shuffle=False, num_workers=6)
+    testloader = torch.utils.data.DataLoader(test_ds, batch_size=bs, shuffle=False, num_workers=6)
+    
+    return trainloader,valloader,testloader

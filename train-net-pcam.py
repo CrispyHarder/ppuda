@@ -60,7 +60,7 @@ parser = myexman.ExParser(file=__file__)
 parser.add_argument('--name', default='')
 parser.add_argument('--gpu_id', default='0')
 parser.add_argument('--seed', default=5743, type=int)
-parser.add_argument('--epochs', default=10, type=int, help='Number of epochs')
+parser.add_argument('--epochs', default=40, type=int, help='Number of epochs')
 parser.add_argument('--bs', default=128, type=int, help='Batch size')
 parser.add_argument('--test_bs', default=500, type=int, help='Batch size for test dataloader')
 
@@ -78,7 +78,7 @@ parser.add_argument('--mult_init_prior', type=str, default='',
 parser.add_argument('--lr', default=0.1, type=float, help='Initial learning rate')
 parser.add_argument('--weight_decay', default=1e-4, type=float)
 parser.add_argument('--momentum', default=0.9, type=float)
-parser.add_argument('--milestones', type=int, nargs='*', default=[24,28])
+parser.add_argument('--milestones', type=int, nargs='*', default=[20,30])
 parser.add_argument('--gammas', default=[0.5,0.2], nargs='*', type=float)
 
 

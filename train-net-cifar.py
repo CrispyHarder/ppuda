@@ -100,9 +100,8 @@ trainloader, valloader, _ = utils.load_cifar10_loaders(args.bs, args.test_bs)
 
 #get model
 net = ResNet([3,3,3],num_classes=10)
-
 # Initialization
-net.mult_weights_init(args.mult_init_mode, args.mult_init_root, device=device, dataset='cifar', prior=args.mult_init_prior)
+net.mult_weights_init(args.mult_init_mode, args.mult_init_root, device=device, dataset='pcam', prior=args.mult_init_prior)
 
 net = net.to(device)
 

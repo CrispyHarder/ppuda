@@ -29,6 +29,15 @@ import _dwp.utils as utils
 import numpy as np 
 from torch.autograd import Variable
 import os 
+import random 
+from _dwp.my_utils import load_resnet_from_checkpoint
+
+def load_resnet(path,ds,device=None):
+    n_classes = 10 if ds=='cifar' else 2
+    model = ResNet([3,3,3],num_classes=n_classes).to(device)
+    model.load_state_dict(torch.load(path,map_location=device))
+    model = model.to(device)
+    return model
 
 __all__ = ['ResNet', 'resnet20', 'resnet32', 'resnet44', 'resnet56', 'resnet110', 'resnet1202']
 
@@ -113,6 +122,19 @@ class ResNet(nn.Module):
         # Since the Resnets are always initialised with he- init at contruction,
         #  we dont have to do anything
         if init_mode == 'he':
+            return
+
+        if init_mode =="pretrained_full":
+            full_pre_path= "/gris/gris-f/homestud/charder/deep-weight-prior/logs/resnet_cifar_runs/runs/"
+            runs = os.listdir(full_pre_path)
+            random.shuffle(runs)
+            init_run_path = os.path.join(full_pre_path,runs[0],"net_params.torch") # A random fully trained run
+            trained_sd = torch.load(init_run_path,map_location=device)
+            sd = self.state_dict()
+            for param,trained_param in zip(sd,trained_sd):
+                if not (param =="linear.weight" or param == "linear.bias"):
+                    sd[param]=trained_sd[trained_param]
+            self.load_state_dict(sd) 
             return
 
         if init_mode.startswith('ghn'):
