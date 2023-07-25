@@ -113,7 +113,7 @@ class ResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def mult_weights_init(self, init_mode, init_root, device, dataset, prior=None):
+    def mult_weights_init(self, init_mode, init_root, device, dataset, prior=None, pretrain_run=1):
         '''initialises the layers of the resnet
         Args: 
             init_mode (str): how to initialise´
@@ -124,6 +124,33 @@ class ResNet(nn.Module):
         if init_mode == 'he':
             return
 
+        if init_mode.startswith("pre"):
+            epoch =int(init_mode.split("_"))
+            full_pre_path= "/gris/gris-f/homestud/charder/ppuda/logs/exman-/gris/gris-f/homestud/charder/ppuda/train-net-cifar.py/runs"
+            runs = sorted(os.listdir(full_pre_path))
+            init_run_path = os.path.join(full_pre_path,runs[25+pretrain_run],f"net_params_{epoch}.torch") # A random fully trained run
+            print(f"Using pretrained resnet in {runs[pretrain_run]}")
+            trained_sd = torch.load(init_run_path,map_location=device)
+            sd = self.state_dict()
+            for param,trained_param in zip(sd,trained_sd):
+                if not (param =="linear.weight" or param == "linear.bias"):
+                    sd[param]=trained_sd[trained_param]
+            self.load_state_dict(sd) 
+            return
+
+        if init_mode =="pretrained_start":
+            full_pre_path= "/gris/gris-f/homestud/charder/ppuda/logs/exman-/gris/gris-f/homestud/charder/ppuda/train-net-cifar.py/runs"
+            runs = sorted(os.listdir(full_pre_path))
+            init_run_path = os.path.join(full_pre_path,runs[pretrain_run],"net_params.torch") # A random fully trained run
+            print(f"Using pretrained resnet in {runs[pretrain_run]}")
+            trained_sd = torch.load(init_run_path,map_location=device)
+            sd = self.state_dict()
+            for param,trained_param in zip(sd,trained_sd):
+                if not (param =="linear.weight" or param == "linear.bias"):
+                    sd[param]=trained_sd[trained_param]
+            self.load_state_dict(sd) 
+            return
+        
         if init_mode =="pretrained_full":
             full_pre_path= "/gris/gris-f/homestud/charder/deep-weight-prior/logs/resnet_cifar_runs/runs/"
             runs = os.listdir(full_pre_path)

@@ -60,7 +60,7 @@ parser = myexman.ExParser(file=__file__)
 parser.add_argument('--name', default='')
 parser.add_argument('--gpu_id', default='0')
 parser.add_argument('--seed', default=5743, type=int)
-parser.add_argument('--epochs', default=120, type=int, help='Number of epochs')
+parser.add_argument('--epochs', default=10, type=int, help='Number of epochs')
 parser.add_argument('--bs', default=128, type=int, help='Batch size')
 parser.add_argument('--test_bs', default=500, type=int, help='Batch size for test dataloader')
 
@@ -80,9 +80,8 @@ parser.add_argument('--gammas', default=[0.5,0.2], nargs='*', type=float)
 
 
 args = parser.parse_args()
-os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
 use_cuda = torch.cuda.is_available()
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 torch.cuda.manual_seed_all(args.seed)
 torch.manual_seed(args.seed)
@@ -148,6 +147,8 @@ for e in range(1, args.epochs + 1):
     
     # after one train epoch, do eval step 
     eval_step(e,net,valloader,logger,writer,args,opt,train_acc,train_nll,lrscheduler)
+
+    torch.save(net.state_dict(), os.path.join(args.root, f"net_params_{e}.torch"))
 
 torch.save(net.state_dict(), os.path.join(args.root, 'net_params_lastepoch.torch'))
 torch.save(opt.state_dict(), os.path.join(args.root, 'opt_params_lastepoch.torch'))

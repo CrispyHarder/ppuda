@@ -63,17 +63,18 @@ parser.add_argument('--seed', default=5743, type=int)
 parser.add_argument('--epochs', default=40, type=int, help='Number of epochs')
 parser.add_argument('--bs', default=128, type=int, help='Batch size')
 parser.add_argument('--test_bs', default=500, type=int, help='Batch size for test dataloader')
-parser.add_argument('--n_ds', default="", type=str, help='which dataset to take')
 
 #model settings
 parser.add_argument('--n_classes', default=2, type=int)
 
 #model init settings MULTI init (if used, single init is ignored)
-parser.add_argument('--mult_init_mode', default= 'ghn_base', type = str,
+parser.add_argument('--mult_init_mode', default= 'pretrained_start', type = str,
                     help = '''such as vqvae1.3''')
 parser.add_argument('--mult_init_root', type=str, default=os.path.join('data','resnet20_pcam','3x3'))
 parser.add_argument('--mult_init_prior', type=str, default='',
                     help='''such as pixelcnn0''')
+
+parser.add_argument('--pretrain_run', type = int)
 
 #optimizer settings
 parser.add_argument('--lr', default=0.1, type=float, help='Initial learning rate')
@@ -99,13 +100,13 @@ logger = Logger('logs', base=args.root, fmt=fmt)
 
 # Load Datasets
 t0 = time.time()
-trainloader, valloader, testloader = get_pcam_transfer_dataloaders(args.bs,args.n_ds)
+trainloader, valloader, testloader = get_pcam_transfer_dataloaders(args.bs)
 load_time = time.time()
 print(f"loading data took {load_time-t0} seconds")
 net = ResNet([3,3,3],num_classes=args.n_classes)
 
 # Initialization
-net.mult_weights_init(args.mult_init_mode, args.mult_init_root, device=device,dataset='cifar', prior=args.mult_init_prior)
+net.mult_weights_init(args.mult_init_mode, args.mult_init_root, device=device,dataset='cifar', prior=args.mult_init_prior, pretrain_run=args.pretrain_run)
 
 net = net.to(device)
 
